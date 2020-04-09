@@ -1,0 +1,74 @@
+---
+title: "CAPE/SHEAR vs Cluster Characteristics"
+author: "James Elsner"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+Load packages.
+```{r}
+library(dplyr)
+library(sf)
+library(ggplot2)
+library(lme4)
+library(lubridate)
+```
+
+Load the cluster-level tornado data.
+```{r}
+load("BigDays.RData")
+
+BigDays.sfdfT <- BigDays.sfdfT %>%
+  mutate(TorPerHour = nT/as.numeric(Duration) * 3600,
+         TorPerKm = nT/as.numeric(HullArea) * 10^6)
+dim(BigDays.sfdfT)
+```
+
+## Log-linear models
+
+I think we should simplify things by using log-linear models. Cluster size, cluster area, and tornado production rate.
+```{r}
+summary(lm(log(nT) ~  maxCAPE * maxBS_deep + maxBS_shallow + minCIN  + maxVSTM + totalPOP, data = BigDays.sfdfT))
+summary(lm(log(as.numeric(HullArea)) ~  maxCAPE + maxBS_shallow + minCIN + maxVSTM + maxUSTM + totalPOP, data = BigDays.sfdfT))
+summary(lm(log(TorPerHour) ~  maxBS_deep + minCIN  + Lat + Lon + totalPOP, data = BigDays.sfdfT))
+```
+
+```{r}
+library(lme4)
+m1 <- glmer(nT ~ maxCAPEs + maxBS_deeps + maxBS_shallows + minCINs + maxHLCYs + HullAreas + maxVSTMs + maxUSTMs + maxDEWs + maxMRs + (1|ID), 
+    data = BigDays.sfdfT, 
+    family = "poisson")
+summary(m1)
+
+m2 <- glmer(nT ~ maxCAPEs + maxBS_deeps + HullAreas + maxVSTMs + maxUSTMs + maxDEWs + maxMRs + (1|ID), 
+    data = BigDays.sfdfT, 
+    family = "poisson")
+summary(m2)
+
+m3 <- glmer(nT ~ maxCAPEs + maxBS_deeps + HullAreas + maxVSTMs + maxUSTMs + maxMRs + (1|ID), 
+    data = BigDays.sfdfT, 
+    family = "poisson")
+summary(m3)
+
+m4 <- glmer(nT ~ maxCAPEs + maxBS_deeps + HullAreas + maxHLCYs + maxVSTMs + (1|ID), 
+    data = BigDays.sfdfT, 
+    family = "poisson")
+summary(m4)
+
+# Check the interactions
+m5 <- glmer(nT ~ maxCAPEs * maxBS_shallows + HullAreas + maxHLCYs + maxVSTMs + (1|ID), 
+    data = BigDays.sfdfT, 
+    family = "poisson")
+summary(m5)
+
+m6 <- glmer(nT ~ maxCAPEs * maxBS_deeps + HullAreas + maxHLCYs + maxVSTMs + (1|ID), 
+    data = BigDays.sfdfT, 
+    family = "poisson")
+summary(m6)
+
+m7 <- glmer(nT ~ HullAreas + TorPerHours + Years  + maxCAPEs + maxBS_deeps + maxHLCYs + maxVSTMs + (1|ID), 
+    data = BigDays.sfdfT, 
+    family = "poisson")
+summary(m7)
+```
