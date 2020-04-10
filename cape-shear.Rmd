@@ -20,6 +20,7 @@ Load the cluster-level tornado data.
 load("BigDays.RData")
 
 BigDays.sfdfT <- BigDays.sfdfT %>%
+  filter(ID != 200305302651) %>%
   mutate(TorPerHour = nT/as.numeric(Duration) * 3600,
          TorPerKm = nT/as.numeric(HullArea) * 10^6)
 dim(BigDays.sfdfT)
@@ -27,27 +28,100 @@ dim(BigDays.sfdfT)
 
 ## Log-linear models
 
+Protocol
 (1) Use `step()` with `direction = "both"`
-(2) Successively remove additional variables with Pr(>|t|) > .01
+(2) Remove variables with the wrong sign (indicative of collinearity)
+(3) Successively remove additional variables with Pr(>|t|) > .01. If two variables are close in t-value pick the physical one over location
+(4) Add month (`Mo`) as a random effects term (use `lmer`). Is there a seasonality?
+(5) Can the model be improved with an interaction between CAPE and BS_deep?
+(6) Fit a final model adjusting the response variable as appropriate
+
+### Cluster size
+```{r}
+df <- BigDays.sfdfT %>%
+  st_drop_geometry() %>%
+  select(nT, maxCAPE, maxDEW, maxHLCY, minCIN, maxUSTM, maxVSTM, maxBS_deep, maxBS_shallow, totalPOP, Lon, Lat)
+
+step(lm(log(nT) ~ ., data = df), direction = "both")
+
+summary(lm(log(nT) ~  totalPOP + maxCAPE + maxVSTM + minCIN  + maxBS_deep + maxHLCY + Lat, data = BigDays.sfdfT))
+summary(lm(log(nT) ~  totalPOP + maxCAPE + maxVSTM + minCIN  + maxBS_deep + maxHLCY, data = BigDays.sfdfT))
+
+ranef(lmer(log(nT) ~ totalPOP + maxCAPE + maxBS_deep + maxVSTM + minCIN + maxHLCY  + (1|Mo), data = BigDays.sfdfT))
+
+summary(lm(log(nT) ~  totalPOP + maxCAPE * maxBS_deep + maxVSTM + minCIN + maxHLCY, data = BigDays.sfdfT))
+
+modelFinal <- lm(log(nT) ~  totalPOP + maxCAPE * maxBS_deep + maxVSTM + minCIN + maxHLCY, data = BigDays.sfdfT)
+hist(resid(modelFinal))
+
+modelFinal2 <- glm(I(nT - 10) ~  totalPOP + maxCAPE * maxBS_deep + maxVSTM + minCIN + maxHLCY, family = "poisson", data = BigDays.sfdfT)
+range(predict(modelFinal2, type = "response") + 10)
+plot(BigDays.sfdfT$nT, predict(modelFinal2, type = "response") + 10)
+cor(BigDays.sfdfT$nT, predict(modelFinal2, type = "response") + 10)
+# .6 in-sample, also check out of sample
+```
+
+### Cluster area
 
 ```{r}
 df <- BigDays.sfdfT %>%
   st_drop_geometry() %>%
-  select(nT, HullArea = as.numeric(HullArea), maxCAPE, maxDEW, maxHLCY, minCIN, maxUSTM, maxVSTM, maxBS_deep, maxBS_shallow, totalPOP, Lon, Lat)
+  select(HullArea, maxCAPE, maxDEW, maxHLCY, minCIN, maxUSTM, maxVSTM, maxBS_deep, maxBS_shallow, totalPOP, Lon, Lat)
+
+step(lm(log(as.numeric(HullArea)) ~ ., data = df), direction = "both")
+
+summary(lm(log(as.numeric(HullArea)) ~  totalPOP + maxUSTM + minCIN + maxVSTM + maxDEW  + Lon + maxCAPE + Lat + maxBS_shallow, data = BigDays.sfdfT))
+summary(lm(log(as.numeric(HullArea)) ~  totalPOP + maxUSTM + minCIN + maxVSTM + maxDEW  + Lon + maxCAPE + maxBS_shallow, data = BigDays.sfdfT))
+
+ranef(lmer(log(as.numeric(HullArea)) ~  totalPOP + maxUSTM + minCIN + maxVSTM + maxDEW  + Lon + maxCAPE + maxBS_shallow + (1|Mo), data = BigDays.sfdfT))
+
+summary(lm(log(as.numeric(HullArea)) ~  totalPOP + maxUSTM + minCIN + maxVSTM + maxDEW  + Lon + maxCAPE * maxBS_shallow, data = BigDays.sfdfT))
+
+modelFinal <- lm(log(HullArea) ~  totalPOP + maxUSTM + minCIN + maxVSTM + maxDEW  + Lon + maxCAPE + maxBS_shallow, data = BigDays.sfdfT)
+hist(as.numeric(resid(modelFinal)))
+cor(BigDays.sfdfT$HullArea, exp(predict(modelFinal)))
+plot(BigDays.sfdfT$HullArea, exp(predict(modelFinal)))
+
+#modelFinal2 <- glm(I(as.numeric(HullArea)/10^8) ~ scale(totalPOP) + 
+#                     scale(maxUSTM) + scale(minCIN) + scale(maxVSTM) + scale(maxDEW)  + scale(Lon) + 
+#                     scale(maxCAPE) + scale(maxBS_shallow), family = "Gamma", data = BigDays.sfdfT)
+
 ```
 
-I think we should simplify things by using log-linear models. Cluster size, cluster area, and tornado production rate.
+### Cluster rate
+
 ```{r}
-step(lm(log(nT) ~ ., data = df), direction = "both")
-summary(lm(log(nT) ~  totalPOP + maxCAPE + maxVSTM + minCIN  + maxBS_deep + maxHLCY, data = BigDays.sfdfT))
+df <- BigDays.sfdfT %>%
+  st_drop_geometry() %>%
+  select(TorPerHour, maxCAPE, maxDEW, maxHLCY, minCIN, maxUSTM, maxVSTM, maxBS_deep, maxBS_shallow, totalPOP, Lon, Lat)
+
+step(lm(log(TorPerHour) ~ ., data = df), direction = "both")
+
+summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP + maxBS_shallow + minCIN + maxVSTM + maxUSTM + maxHLCY, data = BigDays.sfdfT))
+summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP + maxBS_shallow + minCIN + maxVSTM + maxUSTM, data = BigDays.sfdfT))
+summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP + maxBS_shallow + minCIN + maxVSTM, data = BigDays.sfdfT))
+summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP + maxBS_shallow + minCIN, data = BigDays.sfdfT))
+summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP + maxBS_shallow, data = BigDays.sfdfT))
+summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP, data = BigDays.sfdfT))
 ```
 
-summary(lmer(log(nT) ~  maxCAPE * maxBS_deep + maxBS_shallow + minCIN  + maxVSTM + totalPOP + (1|Month), data = BigDays.sfdfT))
-summary(glm(I(nT-10) ~  maxCAPE * maxBS_deep + maxBS_shallow + minCIN  + maxVSTM + totalPOP, family = "poisson", data = BigDays.sfdfT))
+## Cluster density
 
+```{r}
+df <- BigDays.sfdfT %>%
+  st_drop_geometry() %>%
+  select(TorPerKm, maxCAPE, maxDEW, maxHLCY, minCIN, maxUSTM, maxVSTM, maxBS_deep, maxBS_shallow, totalPOP, Lon, Lat)
 
-summary(lm(log(as.numeric(HullArea)) ~  maxCAPE + maxBS_shallow + minCIN + maxVSTM + maxUSTM + totalPOP, data = BigDays.sfdfT))
-summary(lm(log(TorPerHour) ~  maxBS_deep + minCIN  + Lat + Lon + totalPOP, data = BigDays.sfdfT))
+step(lm(log(TorPerKm) ~ ., data = df), direction = "both")
+
+summary(lm(log(TorPerKm) ~  maxUSTM + maxDEW + totalPOP + minCIN + Lon + maxVSTM + Lat, data = BigDays.sfdfT))
+summary(lm(log(TorPerKm) ~  maxUSTM + maxDEW + totalPOP + minCIN + Lon + maxVSTM, data = BigDays.sfdfT))
+
+summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP + maxBS_shallow + minCIN + maxVSTM + maxUSTM, data = BigDays.sfdfT))
+summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP + maxBS_shallow + minCIN + maxVSTM, data = BigDays.sfdfT))
+summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP + maxBS_shallow + minCIN, data = BigDays.sfdfT))
+summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP + maxBS_shallow, data = BigDays.sfdfT))
+summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP, data = BigDays.sfdfT))
 ```
 
 ## CAPE-Shear
