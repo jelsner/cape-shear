@@ -27,9 +27,20 @@ dim(BigDays.sfdfT)
 
 ## Log-linear models
 
+(1) Use `step()` with `direction = "both"`
+(2) Successively remove additional variables with Pr(>|t|) > .01
+
+```{r}
+df <- BigDays.sfdfT %>%
+  st_drop_geometry() %>%
+  select(nT, HullArea = as.numeric(HullArea), maxCAPE, maxDEW, maxHLCY, minCIN, maxUSTM, maxVSTM, maxBS_deep, maxBS_shallow, totalPOP, Lon, Lat)
+```
+
 I think we should simplify things by using log-linear models. Cluster size, cluster area, and tornado production rate.
 ```{r}
-summary(lm(log(nT) ~  maxCAPE * maxBS_deep + maxBS_shallow + minCIN  + maxVSTM + totalPOP, data = BigDays.sfdfT))
+step(lm(log(nT) ~ ., data = df), direction = "both")
+summary(lm(log(nT) ~  totalPOP + maxCAPE + maxVSTM + minCIN  + maxBS_deep + maxHLCY, data = BigDays.sfdfT))
+```
 
 summary(lmer(log(nT) ~  maxCAPE * maxBS_deep + maxBS_shallow + minCIN  + maxVSTM + totalPOP + (1|Month), data = BigDays.sfdfT))
 summary(glm(I(nT-10) ~  maxCAPE * maxBS_deep + maxBS_shallow + minCIN  + maxVSTM + totalPOP, family = "poisson", data = BigDays.sfdfT))
