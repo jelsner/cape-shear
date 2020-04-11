@@ -29,7 +29,7 @@ dim(BigDays.sfdfT)
 ## Log-linear models
 
 Protocol
-(1) Use `step()` with `direction = "both"`
+(1) Use a log-linear regression model and a stepwise procedure `step()` with `direction = "both"`
 (2) Remove variables with the wrong sign (indicative of collinearity)
 (3) Successively remove additional variables with Pr(>|t|) > .01. If two variables are close in t-value pick the physical one over location
 (4) Add month (`Mo`) as a random effects term (use `lmer`). Is there a seasonality?
@@ -40,25 +40,78 @@ Protocol
 ```{r}
 df <- BigDays.sfdfT %>%
   st_drop_geometry() %>%
-  select(nT, maxCAPE, maxDEW, maxHLCY, minCIN, maxUSTM, maxVSTM, maxBS_deep, maxBS_shallow, totalPOP, Lon, Lat)
+  dplyr::select(nT, HullArea, maxCAPE, maxDEW, maxHLCY, minCIN, maxUSTM, maxVSTM, maxBS_deep, maxBS_shallow, totalPOP, Lon, Lat)
 
-step(lm(log(nT) ~ ., data = df), direction = "both")
+step(lm(log(GroupDayCas + 1) ~ ., data = df), direction = "both")
 
-summary(lm(log(nT) ~  totalPOP + maxCAPE + maxVSTM + minCIN  + maxBS_deep + maxHLCY + Lat, data = BigDays.sfdfT))
-summary(lm(log(nT) ~  totalPOP + maxCAPE + maxVSTM + minCIN  + maxBS_deep + maxHLCY, data = BigDays.sfdfT))
+summary(lm(log(nT) ~  HullArea + maxCAPE + maxUSTM + maxVSTM + maxBS_deep + maxBS_shallow, data = BigDays.sfdfT))
 
-ranef(lmer(log(nT) ~ totalPOP + maxCAPE + maxBS_deep + maxVSTM + minCIN + maxHLCY  + (1|Mo), data = BigDays.sfdfT))
+ranef(lmer(log(nT) ~  HullArea + maxCAPE + maxUSTM + maxVSTM + maxBS_deep + maxBS_shallow + (1|Mo), data = BigDays.sfdfT))
 
-summary(lm(log(nT) ~  totalPOP + maxCAPE * maxBS_deep + maxVSTM + minCIN + maxHLCY, data = BigDays.sfdfT))
+modelglmer.nb <- glmer.nb(nT ~ scale(HullArea) + scale(maxCAPE) * scale(maxBS_deep) + scale(maxBS_shallow)  + (1|Mo), data = BigDays.sfdfT)
+summary(modelglmer.nb)
+modelglm.nb <- glm.nb(nT ~ scale(HullArea) + scale(maxCAPE) * scale(maxBS_deep) + scale(maxBS_shallow), data = BigDays.sfdfT)
+summary(modelglm.nb)
 
-modelFinal <- lm(log(nT) ~  totalPOP + maxCAPE * maxBS_deep + maxVSTM + minCIN + maxHLCY, data = BigDays.sfdfT)
+
+modelglmer.nb <- glmer.nb(GroupDayCas ~ scale(totalPOP) + scale(maxCAPE) + scale(maxBS_deep) + scale(maxBS_shallow) + (1|Mo), data = BigDays.sfdfT)
+summary(modelglmer.nb)
+modelglm.nb <- glm.nb(GroupDayCas ~ scale(totalPOP) + scale(maxCAPE) + scale(maxBS_deep) + scale(maxBS_shallow), data = BigDays.sfdfT)
+summary(modelglm.nb)
+
+
+
+
+hist(resid(modelglmer.nb))
+range(predict(modelglmer.nb, type = "response"))
+plot(log(BigDays.sfdfT$GroupDayCas + 1), predict(modelglmer.nb))
+cor(log(BigDays.sfdfT$GroupDayCas + 1), predict(modelglmer.nb))
+
+summary(lm(log(nT) ~  HullArea + maxCAPE * maxBS_deep + maxVSTM + maxUSTM + maxBS_shallow, data = BigDays.sfdfT))
+
+modelFinal <- lm(log(nT) ~ HullArea + maxCAPE * maxBS_deep + maxBS_shallow + maxVSTM, data = BigDays.sfdfT)
 hist(resid(modelFinal))
+range(exp(predict(modelFinal)))
+plot(log(BigDays.sfdfT$nT), predict(modelFinal))
+cor(BigDays.sfdfT$nT, exp(predict(modelFinal)))
 
-modelFinal2 <- glm(I(nT - 10) ~  totalPOP + maxCAPE * maxBS_deep + maxVSTM + minCIN + maxHLCY, family = "poisson", data = BigDays.sfdfT)
+summary(lm(log(GroupDayCas + 1) ~  totalPOP + maxBS_deep + maxBS_shallow, data = BigDays.sfdfT))
+
+modelFinalCas <- lm(log(GroupDayCas + 1) ~  totalPOP + maxBS_deep + maxBS_shallow, data = BigDays.sfdfT)
+hist(resid(modelFinalCas))
+range(exp(predict(modelFinalCas)))
+plot(log(BigDays.sfdfT$GroupDayCas + 1), predict(modelFinalCas))
+cor(BigDays.sfdfT$GroupDayCas + 1, exp(predict(modelFinal)))
+
+modelFinal2 <- glm(I(nT - 10) ~  HullArea + maxBS_deep * maxCAPE + maxBS_shallow + maxVSTM, family = "poisson", data = BigDays.sfdfT)
 range(predict(modelFinal2, type = "response") + 10)
 plot(BigDays.sfdfT$nT, predict(modelFinal2, type = "response") + 10)
 cor(BigDays.sfdfT$nT, predict(modelFinal2, type = "response") + 10)
-# .6 in-sample, also check out of sample
+
+library(MASS)
+modelFinal3 <- glm.nb(nT ~  HullArea + maxBS_deep + maxCAPE + maxBS_shallow + maxVSTM, data = BigDays.sfdfT)
+summary(modelFinal3)
+range(predict(modelFinal3, type = "response"))
+plot(BigDays.sfdfT$nT, predict(modelFinal3, type = "response"))
+cor(BigDays.sfdfT$nT, predict(modelFinal3, type = "response"))
+
+modelFinal4 <- glm.nb(nT ~  HullArea + maxBS_deep + maxCAPE + maxBS_shallow + maxVSTM, data = BigDays.sfdfT)
+summary(modelFinal4)
+range(predict(modelFinal4, type = "response"))
+plot(BigDays.sfdfT$nT, predict(modelFinal4, type = "response"))
+cor(BigDays.sfdfT$nT, predict(modelFinal4, type = "response"))
+
+modelFinalCas2 <- glm.nb(GroupDayCas  ~  totalPOP + maxCAPE + maxBS_deep + maxBS_shallow + maxUSTM, data = BigDays.sfdfT)
+summary(modelFinalCas2)
+range(predict(modelFinalCas2, type = "response"))
+plot(log(BigDays.sfdfT$GroupDayCas + 1), predict(modelFinalCas2))
+cor(log(BigDays.sfdfT$GroupDayCas + 1), predict(modelFinalCas2))
+
+modelFinalFat2 <- glm.nb(GroupDayFat  ~  totalPOP + maxCAPE * maxBS_deep + maxBS_shallow, data = BigDays.sfdfT)
+summary(modelFinalFat2)
+range(predict(modelFinalFat2, type = "response"))
+plot(log(BigDays.sfdfT$GroupDayFat + 1), predict(modelFinalFat2))
+cor(log(BigDays.sfdfT$GroupDayFat + 1), predict(modelFinalFat2))
 ```
 
 ### Cluster area
