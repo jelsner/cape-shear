@@ -26,6 +26,26 @@ BigDays.sfdfT <- BigDays.sfdfT %>%
 dim(BigDays.sfdfT)
 ```
 
+## Model Selection
+
+Start with area and all seven environmental variables.
+```{r}
+modelglm.nb <- glm.nb(nT ~ scale(HullArea) + scale(minCIN) + scale(maxVSTM) + scale(maxUSTM) + scale(maxBS_deep) + scale(maxBS_shallow) + scale(maxHLCY) + scale(maxCAPE), data = BigDays.sfdfT)
+summary(modelglm.nb)
+
+modelglm.nb <- glm.nb(nT ~ scale(HullArea) + scale(maxVSTM) + scale(maxUSTM) + scale(maxBS_deep) + scale(maxBS_shallow) + scale(maxHLCY) + scale(maxCAPE), data = BigDays.sfdfT)
+summary(modelglm.nb)
+
+modelglm.nb <- glm.nb(nT ~ scale(HullArea) + scale(maxVSTM) + scale(maxUSTM) + scale(maxBS_deep) + scale(maxHLCY) + scale(maxCAPE), data = BigDays.sfdfT)
+summary(modelglm.nb)
+
+modelglm.nb <- glm.nb(nT ~ scale(HullArea) + scale(maxVSTM) + scale(maxBS_deep) + scale(maxHLCY) + scale(maxCAPE), data = BigDays.sfdfT)
+summary(modelglm.nb)
+
+modelglm.nb <- glm.nb(nT ~ scale(HullArea) + scale(maxVSTM) + scale(maxBS_deep) * scale(maxCAPE) + scale(maxHLCY), data = BigDays.sfdfT)
+summary(modelglm.nb)
+```
+
 ## Log-linear models
 
 Protocol
@@ -48,15 +68,19 @@ summary(lm(log(nT) ~  HullArea + maxCAPE + maxUSTM + maxVSTM + maxBS_deep + maxB
 
 ranef(lmer(log(nT) ~  HullArea + maxCAPE + maxUSTM + maxVSTM + maxBS_deep + maxBS_shallow + (1|Mo), data = BigDays.sfdfT))
 
-modelglmer.nb <- glmer.nb(nT ~ scale(HullArea) + scale(maxCAPE) * scale(maxBS_deep) + scale(maxBS_shallow)  + (1|Mo), data = BigDays.sfdfT)
+modelglmer.nb <- glmer.nb(nT ~ scale(HullArea) + scale(maxCAPE) * scale(maxBS_deep) + scale(maxBS_shallow) + scale(maxVSTM)  + (1|Mo), data = BigDays.sfdfT)
 summary(modelglmer.nb)
-modelglm.nb <- glm.nb(nT ~ scale(HullArea) + scale(maxCAPE) * scale(maxBS_deep) + scale(maxBS_shallow), data = BigDays.sfdfT)
+modelglm.nb <- glm.nb(nT ~ scale(HullArea) + scale(maxCAPE) * scale(maxBS_deep) + scale(maxBS_shallow) + scale(maxVSTM), data = BigDays.sfdfT)
+summary(modelglm.nb) # Better model
+
+modelglmer.nb <- glmer.nb(GroupDayCas ~ scale(totalPOP) + scale(maxCAPE) + scale(maxBS_deep) + scale(maxBS_shallow) + scale(Lon) + (1|Mo), data = BigDays.sfdfT)
+summary(modelglmer.nb) # Better model
+modelglm.nb <- glm.nb(GroupDayCas ~ scale(totalPOP) + scale(maxCAPE) + scale(maxBS_deep) + scale(maxBS_shallow) + scale(Lat) + scale(Lon), data = BigDays.sfdfT)
 summary(modelglm.nb)
 
-
-modelglmer.nb <- glmer.nb(GroupDayCas ~ scale(totalPOP) + scale(maxCAPE) + scale(maxBS_deep) + scale(maxBS_shallow) + (1|Mo), data = BigDays.sfdfT)
-summary(modelglmer.nb)
-modelglm.nb <- glm.nb(GroupDayCas ~ scale(totalPOP) + scale(maxCAPE) + scale(maxBS_deep) + scale(maxBS_shallow), data = BigDays.sfdfT)
+modelglmer.nb <- glmer.nb(GroupDayFat ~ scale(totalPOP) + scale(maxCAPE) + scale(maxBS_deep) + scale(maxBS_shallow) + scale(Lon) + (1|Mo), data = BigDays.sfdfT)
+summary(modelglmer.nb) # model does not converge
+modelglm.nb <- glm.nb(GroupDayFat ~ scale(totalPOP) + scale(maxCAPE) + scale(maxBS_deep) + scale(maxBS_shallow) + scale(Lat) + scale(Lon), data = BigDays.sfdfT)
 summary(modelglm.nb)
 
 
