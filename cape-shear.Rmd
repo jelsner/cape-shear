@@ -35,13 +35,13 @@ Consider only CAPE, CIN, BS (deep & shallow)
 ```{r}
 library(MASS)
 
-modelInitial <- glm.nb(nT ~ A + Lat + Lon + CAPE + CIN + DLBS + SLBS, data = BigDays.sfdfT)
+modelInitial <- glm.nb(nT ~ A + Lat + Lon + Year + CAPE + CIN + DLBS + SLBS, data = BigDays.sfdfT)
 summary(modelInitial)
 
 modelInitialPoisson <- glm(nT ~ A + Lat + Lon + CAPE + CIN + DLBS + SLBS, family = "poisson", data = BigDays.sfdfT)
 summary(modelInitialPoisson)
 
-modelFinal <- glm.nb(nT ~ A + CAPE + DLBS + SLBS, data = BigDays.sfdf)
+modelFinal <- glm.nb(nT ~ A + CAPE + DLBS + SLBS, data = BigDays.sfdfT)
 summary(modelFinal)
 
 (exp(coef(modelFinal)) - 1) * 100
@@ -62,10 +62,10 @@ summary(glm.nb(nT ~ scale(HullArea) + scale(maxCAPE) + scale(avgCIN) + scale(max
 modelFinal <- glm.nb(nT ~ HullArea + maxCAPE + maxBS_deep + maxBS_shallow, data = BigDays.sfdfT[BigDays.sfdfT$Mo %in% c(10, 11),])
 summary(modelFinal)
 
-modelInitialC <- glm.nb(GroupDayCas ~ totalPOP + maxCAPE + minCIN + maxBS_deep + maxBS_shallow + Lat + Lon, data = BigDays.sfdfT)
+modelInitialC <- glm.nb(GroupDayCas ~ totalPOP + maxCAPE + minCIN + maxBS_deep + maxBS_shallow + Lat + Lon + Year, data = BigDays.sfdfT)
 summary(modelInitialC)
 
-modelFinalC <- glm.nb(GroupDayCas ~ totalPOP + maxCAPE + maxBS_deep + maxBS_shallow + Lat + Lon, data = BigDays.sfdfT)
+modelFinalC <- glm.nb(GroupDayCas ~ totalPOP + maxCAPE + maxBS_deep + maxBS_shallow + Lat + Lon + Year, data = BigDays.sfdfT)
 summary(modelFinalC)
 hist(resid(modelFinalC))
 range(exp(predict(modelFinalC)))
@@ -83,183 +83,75 @@ logCount[i] <- predict(glm.nb(nT ~ HullArea + maxCAPE + maxBS_deep + maxBS_shall
 cor(BigDays.sfdfT$nT, exp(logCount))
 ```
 
-## Predictions
+## Predictions 1-D
 ```{r}
-predict(modelFinal, newdata = data.frame(HullArea = c(mean(BigDays.sfdfT$HullArea), mean(BigDays.sfdfT$HullArea)),
-                                         maxCAPE = c(0, 5000),
-                                         maxBS_deep = c(mean(BigDays.sfdfT$maxBS_deep), mean(BigDays.sfdfT$maxBS_deep)),
-                                         maxBS_shallow = c(mean(BigDays.sfdfT$maxBS_shallow), mean(BigDays.sfdfT$maxBS_shallow))),
+theta <- 6.246
+nTthresh <- 25
+predict(modelFinal, newdata = data.frame(A = c(mean(BigDays.sfdfT$A), mean(BigDays.sfdfT$A)),
+                                         CAPE = c(0, 5),
+                                         DLBS = c(mean(BigDays.sfdfT$DLBS), mean(BigDays.sfdfT$DLBS)),
+                                         SLBS = c(mean(BigDays.sfdfT$SLBS), mean(BigDays.sfdfT$SLBS))),
         type = "response")
 
-1 - pnbinom(50, size = 1, mu = 18.725) # chance that the outbreak will have more than 50 tornadoes
-1 - pnbinom(50, size = 1, mu = 21.55) 
-```
-      
+1 - pnbinom(nTthresh, size = theta, mu = 18.725) # chance that the outbreak will have more than 50 tornadoes when CAPE = 0
+1 - pnbinom(nTthresh, size = theta, mu = 23.55)  # chance that the outbreak will have more than 50 tornadoes when CAPE = 5000
 
-Note the significance of the marginal effects depend on the scale but not the significance of the independent variables.
+predictions  <- predict(modelFinal, 
+                        newdata = data.frame(A = rep(mean(BigDays.sfdfT$A), times = 6),
+                                             CAPE = 0:5,
+                                             DLBS = rep(mean(BigDays.sfdfT$DLBS), times = 6),
+                                             SLBS = rep(mean(BigDays.sfdfT$SLBS), times = 6)),
+                        type = "response")
 
-## Log-linear models
+predictions  <- predict(modelFinal, 
+                        newdata = data.frame(A = mean(BigDays.sfdfT$A),
+                                             CAPE = mean(BigDays.sfdfT$CAPE),
+                                             DLBS = seq(1, 4, by = .25),
+                                             SLBS = mean(BigDays.sfdfT$SLBS)),
+                        type = "response",
+                        se.fit = TRUE)
+plot.predictions <- data.frame(probability = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit),
+                               probabilityU = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit + 2 * predictions$se.fit),
+                               probabilityL = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit - 2 * predictions$se.fit),
+                               DLBS = seq(1, 4, by = .25) * 10)
 
-Protocol
-(1) Use a log-linear regression model and a stepwise procedure `step()` with `direction = "both"`
-(2) Remove variables with the wrong sign (indicative of collinearity)
-(3) Successively remove additional variables with Pr(>|t|) > .01. If two variables are close in t-value pick the physical one over location
-(4) Add month (`Mo`) as a random effects term (use `lmer`). Is there a seasonality?
-(5) Can the model be improved with an interaction between CAPE and BS_deep?
-(6) Fit a final model adjusting the response variable as appropriate
-
-### Cluster size
-```{r}
-df <- BigDays.sfdfT %>%
-  st_drop_geometry() %>%
-  dplyr::select(nT, HullArea, maxCAPE, maxDEW, maxHLCY, minCIN, maxUSTM, maxVSTM, maxBS_deep, maxBS_shallow, totalPOP, Lon, Lat)
-
-step(lm(log(GroupDayCas + 1) ~ ., data = df), direction = "both")
-
-summary(lm(log(nT) ~  HullArea + maxCAPE + maxUSTM + maxVSTM + maxBS_deep + maxBS_shallow, data = BigDays.sfdfT))
-
-ranef(lmer(log(nT) ~  HullArea + maxCAPE + maxUSTM + maxVSTM + maxBS_deep + maxBS_shallow + (1|Mo), data = BigDays.sfdfT))
-
-modelglmer.nb <- glmer.nb(nT ~ scale(HullArea) + scale(maxCAPE) * scale(maxBS_deep) + scale(maxBS_shallow) + scale(maxVSTM)  + (1|Mo), data = BigDays.sfdfT)
-summary(modelglmer.nb)
-modelglm.nb <- glm.nb(nT ~ scale(HullArea) + scale(maxCAPE) * scale(maxBS_deep) + scale(maxBS_shallow) + scale(maxVSTM), data = BigDays.sfdfT)
-summary(modelglm.nb) # Better model
-
-modelglmer.nb <- glmer.nb(GroupDayCas ~ scale(totalPOP) + scale(maxCAPE) + scale(maxBS_deep) + scale(maxBS_shallow) + scale(Lon) + (1|Mo), data = BigDays.sfdfT)
-summary(modelglmer.nb) # Better model
-modelglm.nb <- glm.nb(GroupDayCas ~ scale(totalPOP) + scale(maxCAPE) + scale(maxBS_deep) + scale(maxBS_shallow) + scale(Lat) + scale(Lon), data = BigDays.sfdfT)
-summary(modelglm.nb)
-
-modelglmer.nb <- glmer.nb(GroupDayFat ~ scale(totalPOP) + scale(maxCAPE) + scale(maxBS_deep) + scale(maxBS_shallow) + scale(Lon) + (1|Mo), data = BigDays.sfdfT)
-summary(modelglmer.nb) # model does not converge
-modelglm.nb <- glm.nb(GroupDayFat ~ scale(totalPOP) + scale(maxCAPE) + scale(maxBS_deep) + scale(maxBS_shallow) + scale(Lat) + scale(Lon), data = BigDays.sfdfT)
-summary(modelglm.nb)
-
-
-
-
-hist(resid(modelglmer.nb))
-range(predict(modelglmer.nb, type = "response"))
-plot(log(BigDays.sfdfT$GroupDayCas + 1), predict(modelglmer.nb))
-cor(log(BigDays.sfdfT$GroupDayCas + 1), predict(modelglmer.nb))
-
-summary(lm(log(nT) ~  HullArea + maxCAPE * maxBS_deep + maxVSTM + maxUSTM + maxBS_shallow, data = BigDays.sfdfT))
-
-modelFinal <- lm(log(nT) ~ HullArea + maxCAPE * maxBS_deep + maxBS_shallow + maxVSTM, data = BigDays.sfdfT)
-hist(resid(modelFinal))
-range(exp(predict(modelFinal)))
-plot(log(BigDays.sfdfT$nT), predict(modelFinal))
-cor(BigDays.sfdfT$nT, exp(predict(modelFinal)))
-
-summary(lm(log(GroupDayCas + 1) ~  totalPOP + maxBS_deep + maxBS_shallow, data = BigDays.sfdfT))
-
-modelFinalCas <- lm(log(GroupDayCas + 1) ~  totalPOP + maxBS_deep + maxBS_shallow, data = BigDays.sfdfT)
-hist(resid(modelFinalCas))
-range(exp(predict(modelFinalCas)))
-plot(log(BigDays.sfdfT$GroupDayCas + 1), predict(modelFinalCas))
-cor(BigDays.sfdfT$GroupDayCas + 1, exp(predict(modelFinal)))
-
-modelFinal2 <- glm(I(nT - 10) ~  HullArea + maxBS_deep * maxCAPE + maxBS_shallow + maxVSTM, family = "poisson", data = BigDays.sfdfT)
-range(predict(modelFinal2, type = "response") + 10)
-plot(BigDays.sfdfT$nT, predict(modelFinal2, type = "response") + 10)
-cor(BigDays.sfdfT$nT, predict(modelFinal2, type = "response") + 10)
-
-library(MASS)
-modelFinal3 <- glm.nb(nT ~  HullArea + maxBS_deep + maxCAPE + maxBS_shallow + maxVSTM, data = BigDays.sfdfT)
-summary(modelFinal3)
-range(predict(modelFinal3, type = "response"))
-plot(BigDays.sfdfT$nT, predict(modelFinal3, type = "response"))
-cor(BigDays.sfdfT$nT, predict(modelFinal3, type = "response"))
-
-modelFinal4 <- glm.nb(nT ~  HullArea + maxBS_deep + maxCAPE + maxBS_shallow + maxVSTM, data = BigDays.sfdfT)
-summary(modelFinal4)
-range(predict(modelFinal4, type = "response"))
-plot(BigDays.sfdfT$nT, predict(modelFinal4, type = "response"))
-cor(BigDays.sfdfT$nT, predict(modelFinal4, type = "response"))
-
-modelFinalCas2 <- glm.nb(GroupDayCas  ~  totalPOP + maxCAPE + maxBS_deep + maxBS_shallow + maxUSTM, data = BigDays.sfdfT)
-summary(modelFinalCas2)
-range(predict(modelFinalCas2, type = "response"))
-plot(log(BigDays.sfdfT$GroupDayCas + 1), predict(modelFinalCas2))
-cor(log(BigDays.sfdfT$GroupDayCas + 1), predict(modelFinalCas2))
-
-modelFinalFat2 <- glm.nb(GroupDayFat  ~  totalPOP + maxCAPE * maxBS_deep + maxBS_shallow, data = BigDays.sfdfT)
-summary(modelFinalFat2)
-range(predict(modelFinalFat2, type = "response"))
-plot(log(BigDays.sfdfT$GroupDayFat + 1), predict(modelFinalFat2))
-cor(log(BigDays.sfdfT$GroupDayFat + 1), predict(modelFinalFat2))
+library(ggplot2)
+ggplot(plot.predictions, aes(x = DLBS, y = probability)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = probabilityL, ymax = probabilityU),
+              alpha = .7, col = NA, fill = "gray70") +
+  scale_y_continuous(limits = c(0, NA)) +
+  ylab("Probability of more than 25 tornadoes") +
+  theme_minimal()
 ```
 
-### Cluster area
-
+## Predictions 2-D
 ```{r}
-df <- BigDays.sfdfT %>%
-  st_drop_geometry() %>%
-  select(HullArea, maxCAPE, maxDEW, maxHLCY, minCIN, maxUSTM, maxVSTM, maxBS_deep, maxBS_shallow, totalPOP, Lon, Lat)
+library(directlabels)
 
-step(lm(log(as.numeric(HullArea)) ~ ., data = df), direction = "both")
+pgrid <- expand.grid(CAPE = seq(1, 5, .25),
+                     DLBS = seq(1, 4, .25),
+                     A = mean(BigDays.sfdfT$A),
+                     SLBS = mean(BigDays.sfdfT$SLBS))
 
-summary(lm(log(as.numeric(HullArea)) ~  totalPOP + maxUSTM + minCIN + maxVSTM + maxDEW  + Lon + maxCAPE + Lat + maxBS_shallow, data = BigDays.sfdfT))
-summary(lm(log(as.numeric(HullArea)) ~  totalPOP + maxUSTM + minCIN + maxVSTM + maxDEW  + Lon + maxCAPE + maxBS_shallow, data = BigDays.sfdfT))
+predictions <- predict.glm(modelFinal, newdata = pgrid, type = "response")
+pgrid$probability <-1 - pnbinom(50, size = 1, mu = predictions)
 
-ranef(lmer(log(as.numeric(HullArea)) ~  totalPOP + maxUSTM + minCIN + maxVSTM + maxDEW  + Lon + maxCAPE + maxBS_shallow + (1|Mo), data = BigDays.sfdfT))
-
-summary(lm(log(as.numeric(HullArea)) ~  totalPOP + maxUSTM + minCIN + maxVSTM + maxDEW  + Lon + maxCAPE * maxBS_shallow, data = BigDays.sfdfT))
-
-modelFinal <- lm(log(HullArea) ~  totalPOP + maxUSTM + minCIN + maxVSTM + maxDEW  + Lon + maxCAPE + maxBS_shallow, data = BigDays.sfdfT)
-hist(as.numeric(resid(modelFinal)))
-cor(BigDays.sfdfT$HullArea, exp(predict(modelFinal)))
-plot(BigDays.sfdfT$HullArea, exp(predict(modelFinal)))
-
-#modelFinal2 <- glm(I(as.numeric(HullArea)/10^8) ~ scale(totalPOP) + 
-#                     scale(maxUSTM) + scale(minCIN) + scale(maxVSTM) + scale(maxDEW)  + scale(Lon) + 
-#                     scale(maxCAPE) + scale(maxBS_shallow), family = "Gamma", data = BigDays.sfdfT)
-
-```
-
-### Cluster rate
-
-```{r}
-df <- BigDays.sfdfT %>%
-  st_drop_geometry() %>%
-  select(TorPerHour, maxCAPE, maxDEW, maxHLCY, minCIN, maxUSTM, maxVSTM, maxBS_deep, maxBS_shallow, totalPOP, Lon, Lat)
-
-step(lm(log(TorPerHour) ~ ., data = df), direction = "both")
-
-summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP + maxBS_shallow + minCIN + maxVSTM + maxUSTM + maxHLCY, data = BigDays.sfdfT))
-summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP + maxBS_shallow + minCIN + maxVSTM + maxUSTM, data = BigDays.sfdfT))
-summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP + maxBS_shallow + minCIN + maxVSTM, data = BigDays.sfdfT))
-summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP + maxBS_shallow + minCIN, data = BigDays.sfdfT))
-summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP + maxBS_shallow, data = BigDays.sfdfT))
-summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP, data = BigDays.sfdfT))
-```
-
-## Cluster density
-
-```{r}
-df <- BigDays.sfdfT %>%
-  st_drop_geometry() %>%
-  select(TorPerKm, maxCAPE, maxDEW, maxHLCY, minCIN, maxUSTM, maxVSTM, maxBS_deep, maxBS_shallow, totalPOP, Lon, Lat)
-
-step(lm(log(TorPerKm) ~ ., data = df), direction = "both")
-
-summary(lm(log(TorPerKm) ~  maxUSTM + maxDEW + totalPOP + minCIN + Lon + maxVSTM + Lat, data = BigDays.sfdfT))
-summary(lm(log(TorPerKm) ~  maxUSTM + maxDEW + totalPOP + minCIN + Lon + maxVSTM, data = BigDays.sfdfT))
-
-summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP + maxBS_shallow + minCIN + maxVSTM + maxUSTM, data = BigDays.sfdfT))
-summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP + maxBS_shallow + minCIN + maxVSTM, data = BigDays.sfdfT))
-summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP + maxBS_shallow + minCIN, data = BigDays.sfdfT))
-summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP + maxBS_shallow, data = BigDays.sfdfT))
-summary(lm(log(TorPerHour) ~  Lat + maxDEW + maxCAPE + totalPOP, data = BigDays.sfdfT))
+( p <- ggplot(pgrid, aes(x = CAPE * 1000, y = DLBS * 10, fill = probability)) +
+          geom_raster() +
+#  scale_fill_viridis_c()
+          scale_fill_continuous(low = 'green', high = 'red') +
+          geom_contour(aes(color = ..level.., z = probability), breaks = c(.05, .075, .1, .125, .15), color = "black") +
+          theme_minimal() )
+direct.label(p, list("angled.boxes"))
 ```
 
 ## CAPE-Shear
 
 ```{r}
 df <- BigDays.sfdfT %>% 
-# filter(Mo %in% c(9, 10, 11)) %>%
   st_drop_geometry() %>%
-  select(Y = maxCAPE, X = maxBS_deep, Z = nT)
+  dplyr::select(Y = DLBS, X = CAPE, Z = GroupDayFat)
 cor(df$Y, df$X)
 
 theta = seq(1, 180, by = 1)
@@ -273,12 +165,6 @@ for (k in theta){
   pval = c(pval, as.numeric(ctest$p.value))
 }
 range(r)
-
-plot.df <- data.frame(theta, C1 = cos(theta * pi/180), C2 = sin(theta * pi/180), r)
-ggplot(plot.df, aes(x = C1, y = C2, color = r)) +
-  geom_line() +
-  coord_polar()
-  
 
 signif = .01
 plot(-10, -10, xlim=c(-.75, 1.05), ylim=c(-.75, 1.05), axes=FALSE, xlab='', ylab='', main='')
@@ -294,9 +180,9 @@ Line.xcord = c(-.75, .75, NA, 0, 0, NA, -cos(pi/4), cos(pi/4), NA, -cos(pi/4), c
 Line.ycord = c(0, 0, NA, -.75, .75, NA, sin(pi/4), -sin(pi/4), NA, -sin(pi/4), sin(pi/4))
 lines(Line.xcord, Line.ycord, col=colors()[229], lwd=1)
 
-text(par('usr')[2] - 0.29, 0.0, srt=0, adj = 0, labels = 'Shear', xpd = TRUE, cex=1.3) 
+text(par('usr')[2] - 0.29, 0.0, srt=0, adj = 0, labels = 'CAPE', xpd = TRUE, cex=1.3) 
 text(par('usr')[2] - 0.6, 0.81, srt=0, adj = 0, labels = '', xpd = TRUE, cex=1.3)
-text(par('usr')[2] - 1.52, 1.17, srt=0, adj = 0, labels = 'CAPE', xpd = TRUE, cex=1.3)
+text(par('usr')[2] - 1.52, 1.17, srt=0, adj = 0, labels = 'DLBS', xpd = TRUE, cex=1.3)
 text(par('usr')[2] - 0.6, -0.81, srt=0, adj = 0, labels = '', xpd = TRUE, cex=1.3)
 text(0,0.3, '0.25', cex=1.4, col=colors()[229])
 text(0,0.8, '0.75', cex=1.4, col=colors()[229])
@@ -308,5 +194,16 @@ pval2 = c(pval[which.max(pval):length(pval)], pval[1:(which.max(pval) - 1)])
 dg2 = c(dg[which.max(pval):length(pval)], dg[1:(which.max(pval) - 1)])
 lines(r2[pval2 <= signif] * cos(dg2[pval2 <= signif] * pi/180),
       r2[pval2 <= signif] * sin(dg2[pval2 <= signif] * pi/180), col="#cc3300", lwd=7) 
+```
+
+## Trends
+```{r}
+BigDays.sfdfT %>%
+#  filter(Mo %in% c(3, 4, 5, 6)) %>%
+  group_by(Year) %>%
+  summarize(Avg = mean(SLBS)) %>%
+ggplot(aes(x = Year, y = Avg)) +
+  geom_point() +
+  geom_smooth(method = lm)
 ```
 
