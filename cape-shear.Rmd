@@ -13,6 +13,7 @@ library(sf)
 library(ggplot2)
 library(lme4)
 library(lubridate)
+library(xtable)
 ```
 
 Load the cluster-level tornado data.
@@ -20,31 +21,74 @@ Load the cluster-level tornado data.
 load("BigDays.RData")
 
 BigDays.sfdfT <- BigDays.sfdfT %>%
-  filter(ID != 200305302651) %>%
-  mutate(TorPerHour = nT/as.numeric(Duration) * 3600,
-         TorPerKm = nT/as.numeric(HullArea) * 10^6)
+#  filter(ID != 200305302651) %>%
+  mutate(A = as.numeric(HullArea)/10^10,
+         CAPE = maxCAPE/1000,
+         CIN = minCIN/100,
+         DLBS = maxBS_deep/10,
+         SLBS = maxBS_shallow/10)
 dim(BigDays.sfdfT)
 ```
 
 ## Model Selection
 
-Start with area and all seven environmental variables.
+Consider only CAPE, CIN, BS (deep & shallow)
 ```{r}
-modelglm.nb <- glm.nb(nT ~ scale(HullArea) + scale(minCIN) + scale(maxVSTM) + scale(maxUSTM) + scale(maxBS_deep) + scale(maxBS_shallow) + scale(maxHLCY) + scale(maxCAPE), data = BigDays.sfdfT)
-summary(modelglm.nb)
+modelInitial <- glm.nb(nT ~ A + Lat + Lon + CAPE + CIN + DLBS + SLBS, data = BigDays.sfdfT)
+summary(modelInitial)
 
-modelglm.nb <- glm.nb(nT ~ scale(HullArea) + scale(maxVSTM) + scale(maxUSTM) + scale(maxBS_deep) + scale(maxBS_shallow) + scale(maxHLCY) + scale(maxCAPE), data = BigDays.sfdfT)
-summary(modelglm.nb)
+modelFinal <- glm.nb(nT ~ A + CAPE + DLBS + SLBS, data = BigDays.sfdfT)
+summary(modelFinal)
 
-modelglm.nb <- glm.nb(nT ~ scale(HullArea) + scale(maxVSTM) + scale(maxUSTM) + scale(maxBS_deep) + scale(maxHLCY) + scale(maxCAPE), data = BigDays.sfdfT)
-summary(modelglm.nb)
+(exp(coef(modelFinal)) - 1) * 100
 
-modelglm.nb <- glm.nb(nT ~ scale(HullArea) + scale(maxVSTM) + scale(maxBS_deep) + scale(maxHLCY) + scale(maxCAPE), data = BigDays.sfdfT)
-summary(modelglm.nb)
+summary(lm(log(nT) ~ HullArea + maxCAPE + maxBS_deep + maxBS_shallow, data = BigDays.sfdfT))
 
-modelglm.nb <- glm.nb(nT ~ scale(HullArea) + scale(maxVSTM) + scale(maxBS_deep) * scale(maxCAPE) + scale(maxHLCY), data = BigDays.sfdfT)
-summary(modelglm.nb)
+
+hist(resid(modelFinal))
+range(exp(predict(modelFinal)))
+plot(log(BigDays.sfdfT$nT), predict(modelFinal))
+cor(BigDays.sfdfT$nT, exp(predict(modelFinal)))
+
+modelglmer.nb <- glmer.nb(nT ~ scale(HullArea) + scale(maxCAPE) + scale(maxBS_deep) + scale(maxBS_shallow) + (1|Season), data = BigDays.sfdfT)
+summary(modelglmer.nb) # no convergence if interaction term is included
+summary(glm.nb(nT ~ scale(HullArea) + scale(maxCAPE) + scale(avgCIN) + scale(maxBS_deep) + scale(maxBS_shallow), data = BigDays.sfdfT))
+
+modelFinal <- glm.nb(nT ~ HullArea + maxCAPE + maxBS_deep + maxBS_shallow, data = BigDays.sfdfT[BigDays.sfdfT$Mo %in% c(10, 11),])
+summary(modelFinal)
+
+modelFinalC <- glm.nb(GroupDayCas ~ totalPOP + maxCAPE + maxBS_deep + maxBS_shallow + Lat + Lon, data = BigDays.sfdfT[BigDays.sfdfT$Season,])
+summary(modelFinalC)
+hist(resid(modelFinalC))
+range(exp(predict(modelFinalC)))
+plot(log(BigDays.sfdfT$GroupDayCas), predict(modelFinalC))
+cor(BigDays.sfdfT$GroupDayCas, exp(predict(modelFinalC)))
 ```
+
+## Cross validation
+```{r}
+logCount <- numeric()
+for(i in 1:nrow(BigDays.sfdfT)){
+logCount[i] <- predict(glm.nb(nT ~ HullArea + maxCAPE + maxBS_deep + maxBS_shallow, data = BigDays.sfdfT[-i, ]), 
+                       newdata = BigDays.sfdfT[i,])
+}
+cor(BigDays.sfdfT$nT, exp(logCount))
+```
+
+## Predictions
+```{r}
+predict(modelFinal, newdata = data.frame(HullArea = c(mean(BigDays.sfdfT$HullArea), mean(BigDays.sfdfT$HullArea)),
+                                         maxCAPE = c(0, 5000),
+                                         maxBS_deep = c(mean(BigDays.sfdfT$maxBS_deep), mean(BigDays.sfdfT$maxBS_deep)),
+                                         maxBS_shallow = c(mean(BigDays.sfdfT$maxBS_shallow), mean(BigDays.sfdfT$maxBS_shallow))),
+        type = "response")
+
+1 - pnbinom(50, size = 1, mu = 18.725) # chance that the outbreak will have more than 50 tornadoes
+1 - pnbinom(50, size = 1, mu = 21.55) 
+```
+      
+
+Note the significance of the marginal effects depend on the scale but not the significance of the independent variables.
 
 ## Log-linear models
 
