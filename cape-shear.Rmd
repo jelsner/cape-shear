@@ -41,7 +41,7 @@ summary(modelInitial)
 modelInitialPoisson <- glm(nT ~ A + Lat + Lon + CAPE + CIN + DLBS + SLBS, family = "poisson", data = BigDays.sfdfT)
 summary(modelInitialPoisson)
 
-modelFinal <- glm.nb(nT ~ A + CAPE + DLBS + SLBS, data = BigDays.sfdfT)
+modelFinal <- glm.nb(nT ~ A + CAPE + DLBS + SLBS, data = BigDays.sfdf)
 summary(modelFinal)
 
 (exp(coef(modelFinal)) - 1) * 100
