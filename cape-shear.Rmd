@@ -21,7 +21,6 @@ Load the cluster-level tornado data.
 load("BigDays.RData")
 
 BigDays.sfdfT <- BigDays.sfdfT %>%
-#  filter(ID != 200305302651) %>%
   mutate(A = as.numeric(HullArea)/10^10,
          CAPE = maxCAPE/1000,
          CIN = minCIN/100,
@@ -34,8 +33,13 @@ dim(BigDays.sfdfT)
 
 Consider only CAPE, CIN, BS (deep & shallow)
 ```{r}
+library(MASS)
+
 modelInitial <- glm.nb(nT ~ A + Lat + Lon + CAPE + CIN + DLBS + SLBS, data = BigDays.sfdfT)
 summary(modelInitial)
+
+modelInitialPoisson <- glm(nT ~ A + Lat + Lon + CAPE + CIN + DLBS + SLBS, family = "poisson", data = BigDays.sfdfT)
+summary(modelInitialPoisson)
 
 modelFinal <- glm.nb(nT ~ A + CAPE + DLBS + SLBS, data = BigDays.sfdfT)
 summary(modelFinal)
@@ -48,16 +52,20 @@ summary(lm(log(nT) ~ HullArea + maxCAPE + maxBS_deep + maxBS_shallow, data = Big
 hist(resid(modelFinal))
 range(exp(predict(modelFinal)))
 plot(log(BigDays.sfdfT$nT), predict(modelFinal))
-cor(BigDays.sfdfT$nT, exp(predict(modelFinal)))
+cor(BigDays.sfdfT$nT, predict(modelFinal, type = "response"))
 
 modelglmer.nb <- glmer.nb(nT ~ scale(HullArea) + scale(maxCAPE) + scale(maxBS_deep) + scale(maxBS_shallow) + (1|Season), data = BigDays.sfdfT)
 summary(modelglmer.nb) # no convergence if interaction term is included
+
 summary(glm.nb(nT ~ scale(HullArea) + scale(maxCAPE) + scale(avgCIN) + scale(maxBS_deep) + scale(maxBS_shallow), data = BigDays.sfdfT))
 
 modelFinal <- glm.nb(nT ~ HullArea + maxCAPE + maxBS_deep + maxBS_shallow, data = BigDays.sfdfT[BigDays.sfdfT$Mo %in% c(10, 11),])
 summary(modelFinal)
 
-modelFinalC <- glm.nb(GroupDayCas ~ totalPOP + maxCAPE + maxBS_deep + maxBS_shallow + Lat + Lon, data = BigDays.sfdfT[BigDays.sfdfT$Season,])
+modelInitialC <- glm.nb(GroupDayCas ~ totalPOP + maxCAPE + minCIN + maxBS_deep + maxBS_shallow + Lat + Lon, data = BigDays.sfdfT)
+summary(modelInitialC)
+
+modelFinalC <- glm.nb(GroupDayCas ~ totalPOP + maxCAPE + maxBS_deep + maxBS_shallow + Lat + Lon, data = BigDays.sfdfT)
 summary(modelFinalC)
 hist(resid(modelFinalC))
 range(exp(predict(modelFinalC)))
