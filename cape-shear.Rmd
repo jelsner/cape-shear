@@ -29,6 +29,16 @@ BigDays.sfdfT <- BigDays.sfdfT %>%
 dim(BigDays.sfdfT)
 ```
 
+## Distribution of casualties
+```{r}
+BigDays.sfdfT %>%
+  st_drop_geometry() %>%
+  group_by(GroupDayCas) %>%
+  summarize(nC = n(),
+            pC = nC/nrow(BigDays.sfdfT)) %>%
+  arrange(desc(nC))
+```
+
 ## Model Selection
 
 Consider only CAPE, CIN, BS (deep & shallow)
@@ -159,10 +169,10 @@ plot.predictions <- rbind(plot.predictions, plot.predictions2, plot.predictions3
 library(ggplot2)
 ggplot(plot.predictions, aes(x = DLBS, y = probability, color = factor(CAPE, levels = rev(CAPElevels)))) +
   geom_line(size = 2) +
-  scale_y_continuous(limits = c(0, 1)) +
-  scale_colour_ordinal(name = "CAPE (J/kg)") +
-  ylab(paste("Probability of at Least", nTthresh, "Tornadoes")) +
-  xlab("Deep-Layer Bulk Shear (m/s)") +
+  scale_y_continuous(limits = c(0, 1), labels = scales::percent) +
+  scale_colour_ordinal(name = "CAPE (J/kg)", direction = -1, alpha = .6) +
+  ylab(paste("Probability of at least", nTthresh, "tornadoes")) +
+  xlab("Deep-layer bulk shear (m/s)") +
   theme_minimal()
 ```
 
@@ -172,18 +182,21 @@ library(directlabels)
 
 pgrid <- expand.grid(CAPE = seq(1, 5, .05),
                      DLBS = seq(1, 4, .05),
-                     A = mean(BigDays.sfdfT$A),
+                     A = Area,
                      SLBS = mean(BigDays.sfdfT$SLBS))
 
 predictions <- predict.glm(modelFinal, newdata = pgrid, type = "response")
-pgrid$probability <-1 - pnbinom(25, size = theta, mu = predictions)
+pgrid$probability <-1 - pnbinom(nTthresh, size = theta, mu = predictions)
 
 ( p <- ggplot(pgrid, aes(x = CAPE * 1000, y = DLBS * 10, fill = probability)) +
           geom_raster() +
-#  scale_fill_viridis_c()
-          scale_fill_continuous(low = 'green', high = 'red') +
-          geom_contour(aes(color = ..level.., z = probability), breaks = c(.05, .075, .1, .125, .15), color = "black") +
+          scale_fill_viridis_c(alpha = .6) +
+#          scale_fill_continuous(low = 'green', high = 'red') +  # use for casualties
+          geom_contour(aes(color = ..level.., z = probability), breaks = seq(.3, .6, by = .1), color = "black") +
+          ylab("Deep-layer bulk shear (m/s)") +
+          xlab("CAPE (J/kg)") + 
           theme_minimal() )
+#    ggtitle("Probability of at least 30 tornadoes in an outbreak")
 direct.label(p, list("angled.boxes"))
 ```
 
