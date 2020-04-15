@@ -201,7 +201,6 @@ pgrid$probability <-1 - pnbinom(nTthresh, size = theta, mu = predictions)
 ( p <- ggplot(pgrid, aes(x = CAPE * 1000, y = DLBS * 10, fill = probability)) +
           geom_raster() +
           scale_fill_viridis_c(alpha = .6) +
-#          scale_fill_continuous(low = 'green', high = 'red') +  # use for casualties
           geom_contour(aes(color = ..level.., z = probability), breaks = seq(.3, .6, by = .1), color = "black") +
           ylab("Deep-layer bulk shear (m/s)") +
           xlab("CAPE (J/kg)") + 
@@ -211,9 +210,10 @@ direct.label(p, list("angled.boxes"))
 ```
 
 ## Casualty predictions 1-D
+
+Start with shear (DLBS)
 ```{r}
-( Plevels <- round(quantile(BigDays.sfdfT$P, probs = c(.05, .75, .9)), 2) )
-( Plevels <- c(10, 40, 80) )
+( Plevels <- c(10, 40, 80) ) # 100,000s
 theta <- .261
 nCthresh <- 50
 Area <- 40 # Area of 10\% tor probability April 12, 2020 outbreak 12UTC
@@ -271,14 +271,87 @@ plot.predictions3 <- data.frame(P = Plevels[3],
 
 plot.predictions <- rbind(plot.predictions, plot.predictions2, plot.predictions3)
 
-library(ggplot2)
-ggplot(plot.predictions, aes(x = DLBS, y = probability, color = factor(P * 100000, levels = rev(Plevels * 100000)))) +
+cbPalette <- c("#E69F00", "#56B4E9", "#009E73")
+(p1 <- ggplot(plot.predictions, aes(x = DLBS, y = probability, color = factor(P * 100000, levels = rev(Plevels * 100000)))) +
   geom_line(size = 2) +
-  scale_y_continuous(limits = c(0, .3), labels = scales::percent) +
-  scale_colour_ordinal(name = "Population", direction = -1, alpha = .6, labels = c("8,000,000", "4,000,000", "1,000,000")) +
+  scale_y_continuous(limits = c(0, .25), labels = scales::percent) +
+  scale_colour_manual(name = "Population", labels = c("8M", "4M", "1M"), values = cbPalette) + 
   ylab(paste("Probability of at least", nCthresh, "casualties")) +
   xlab("Deep-layer bulk shear (m/s)") +
-  theme_minimal()
+  theme_minimal() )
+```
+
+Repeat for with CAPE
+```{r}
+( Plevels <- c(10, 40, 80) ) # 100,000s
+theta <- .261
+nCthresh <- 50
+Area <- 40 # Area of 10\% tor probability April 12, 2020 outbreak 12UTC
+
+predictions  <- predict(modelFinalC, 
+                        newdata = data.frame(P = Plevels[1],
+                                             Lat = mean(BigDays.sfdfT$Lat),
+                                             Lon = mean(BigDays.sfdfT$Lon),
+                                             Year = 2018,
+                                             CAPE = seq(0, 5, by = .25),
+                                             DLBS = mean(BigDays.sfdfT$DLBS),
+                                             SLBS = mean(BigDays.sfdfT$SLBS)),
+                        type = "response",
+                        se.fit = TRUE)
+plot.predictions <- data.frame(P = Plevels[1],
+                               probability = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit),
+                               probabilityU = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit + 2 * predictions$se.fit),
+                               probabilityL = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit - 2 * predictions$se.fit),
+                               CAPE = seq(0, 5, by = .25) * 1000)
+
+predictions  <- predict(modelFinalC, 
+                        newdata = data.frame(P = Plevels[2],
+                                             Lat = mean(BigDays.sfdfT$Lat),
+                                             Lon = mean(BigDays.sfdfT$Lon),
+                                             Year = 2018,
+                                             CAPE = seq(0, 5, by = .25),
+                                             DLBS = mean(BigDays.sfdfT$DLBS),
+                                             SLBS = mean(BigDays.sfdfT$SLBS)),
+                        type = "response",
+                        se.fit = TRUE)
+
+plot.predictions2 <- data.frame(P = Plevels[2],
+                               probability = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit),
+                               probabilityU = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit + 2 * predictions$se.fit),
+                               probabilityL = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit - 2 * predictions$se.fit),
+                               CAPE = seq(0, 5, by = .25) * 1000)
+
+predictions  <- predict(modelFinalC, 
+                        newdata = data.frame(P = Plevels[3],
+                                             Lat = mean(BigDays.sfdfT$Lat),
+                                             Lon = mean(BigDays.sfdfT$Lon),
+                                             Year = 2018,
+                                             CAPE = seq(0, 5, by = .25),
+                                             DLBS = mean(BigDays.sfdfT$DLBS),
+                                             SLBS = mean(BigDays.sfdfT$SLBS)),
+                        type = "response",
+                        se.fit = TRUE)
+
+plot.predictions3 <- data.frame(P = Plevels[3],
+                               probability = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit),
+                               probabilityU = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit + 2 * predictions$se.fit),
+                               probabilityL = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit - 2 * predictions$se.fit),
+                               CAPE = seq(0, 5, by = .25) * 1000)
+
+
+plot.predictions <- rbind(plot.predictions, plot.predictions2, plot.predictions3)
+
+( p2 <- ggplot(plot.predictions, aes(x = CAPE, y = probability, color = factor(P * 100000, levels = rev(Plevels * 100000)))) +
+  geom_line(size = 2) +
+  scale_y_continuous(limits = c(0, .25), labels = scales::percent) +
+   scale_colour_manual(name = "Population", labels = c("8M", "4M", "1M"), values = cbPalette) + 
+  ylab(paste("Probability of at least", nCthresh, "casualties")) +
+  xlab("CAPE (J/kg)") +
+  theme_minimal() )
+
+library(patchwork)
+
+p1 + p2
 ```
 
 ## April 12, 2020 case https://www.spc.noaa.gov/cgi-bin-spc/getacrange.pl?date0=20200412&date1=20200412
