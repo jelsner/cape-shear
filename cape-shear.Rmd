@@ -25,7 +25,8 @@ BigDays.sfdfT <- BigDays.sfdfT %>%
          CAPE = maxCAPE/1000,
          CIN = minCIN/100,
          DLBS = maxBS_deep/10,
-         SLBS = maxBS_shallow/10)
+         SLBS = maxBS_shallow/10,
+         P = totalPOP/100000)
 dim(BigDays.sfdfT)
 ```
 
@@ -39,7 +40,7 @@ BigDays.sfdfT %>%
   arrange(desc(nC))
 ```
 
-## Model Selection
+## Tornado count model
 
 Consider only CAPE, CIN, BS (deep & shallow)
 ```{r}
@@ -56,13 +57,14 @@ summary(modelFinal)
 
 (exp(coef(modelFinal)) - 1) * 100
 
-summary(lm(log(nT) ~ HullArea + maxCAPE + maxBS_deep + maxBS_shallow, data = BigDays.sfdfT))
-
-
 hist(resid(modelFinal))
 range(exp(predict(modelFinal)))
 plot(log(BigDays.sfdfT$nT), predict(modelFinal))
 cor(BigDays.sfdfT$nT, predict(modelFinal, type = "response"))
+mean(abs(BigDays.sfdfT$nT - predict(modelFinal, type = "response")))
+mean(abs(BigDays.sfdfT$nT - predict(modelFinal, type = "response")))/(max(BigDays.sfdfT$nT) - min(BigDays.sfdfT$nT))
+mean(abs(BigDays.sfdfT$nT - predict(modelFinal, type = "response")))/(max(predict(modelFinal, type = "response")) - min(predict(modelFinal, type = "response")))
+
 
 modelglmer.nb <- glmer.nb(nT ~ scale(HullArea) + scale(maxCAPE) + scale(maxBS_deep) + scale(maxBS_shallow) + (1|Season), data = BigDays.sfdfT)
 summary(modelglmer.nb) # no convergence if interaction term is included
@@ -71,12 +73,16 @@ summary(glm.nb(nT ~ scale(HullArea) + scale(maxCAPE) + scale(avgCIN) + scale(max
 
 modelFinal <- glm.nb(nT ~ HullArea + maxCAPE + maxBS_deep + maxBS_shallow, data = BigDays.sfdfT[BigDays.sfdfT$Mo %in% c(10, 11),])
 summary(modelFinal)
+```
 
-modelInitialC <- glm.nb(GroupDayCas ~ totalPOP + maxCAPE + minCIN + maxBS_deep + maxBS_shallow + Lat + Lon + Year, data = BigDays.sfdfT)
+## Casualty model
+```{r}
+modelInitialC <- glm.nb(GroupDayCas ~ P + Lat + Lon + Year + CAPE + CIN + DLBS + SLBS, data = BigDays.sfdfT)
 summary(modelInitialC)
 
-modelFinalC <- glm.nb(GroupDayCas ~ totalPOP + maxCAPE + maxBS_deep + maxBS_shallow + Lat + Lon + Year, data = BigDays.sfdfT)
+modelFinalC <- glm.nb(GroupDayCas ~ P + Lat + Lon + Year + CAPE + DLBS + SLBS, data = BigDays.sfdfT)
 summary(modelFinalC)
+
 hist(resid(modelFinalC))
 range(exp(predict(modelFinalC)))
 plot(log(BigDays.sfdfT$GroupDayCas), predict(modelFinalC))
@@ -85,15 +91,20 @@ cor(BigDays.sfdfT$GroupDayCas, exp(predict(modelFinalC)))
 
 ## Cross validation
 ```{r}
-logCount <- numeric()
+Count <- numeric()
 for(i in 1:nrow(BigDays.sfdfT)){
-logCount[i] <- predict(glm.nb(nT ~ HullArea + maxCAPE + maxBS_deep + maxBS_shallow, data = BigDays.sfdfT[-i, ]), 
-                       newdata = BigDays.sfdfT[i,])
+Count[i] <- predict(glm.nb(nT ~ A + CAPE + DLBS + SLBS, data = BigDays.sfdfT[-i, ]), 
+                       newdata = BigDays.sfdfT[i,],
+                       type = "response")
 }
-cor(BigDays.sfdfT$nT, exp(logCount))
+cor(BigDays.sfdfT$nT, Count)
+mean(abs(BigDays.sfdfT$nT - Count))
+mean(abs(BigDays.sfdfT$nT - Count))/(max(BigDays.sfdfT$nT) - min(BigDays.sfdfT$nT))
+mean(abs(BigDays.sfdfT$nT - predict(modelFinal, type = "response")))/(max(predict(modelFinal, type = "response")) - min(predict(modelFinal, type = "response")))
+
 ```
 
-## Predictions 1-D
+## Tornado predictions 1-D
 ```{r}
 theta <- 6.246
 nTthresh <- 20
@@ -113,7 +124,6 @@ predictions  <- predict(modelFinal,
                                              SLBS = rep(mean(BigDays.sfdfT$SLBS), times = 6)),
                         type = "response")
 ```
-
 
 ```{r}
 ( CAPElevels <- round(quantile(BigDays.sfdfT$maxCAPE, probs = c(.05, .5, .95))) )
@@ -176,7 +186,7 @@ ggplot(plot.predictions, aes(x = DLBS, y = probability, color = factor(CAPE, lev
   theme_minimal()
 ```
 
-## Predictions 2-D
+## Tornado predictions 2-D
 ```{r}
 library(directlabels)
 
@@ -198,6 +208,77 @@ pgrid$probability <-1 - pnbinom(nTthresh, size = theta, mu = predictions)
           theme_minimal() )
 #    ggtitle("Probability of at least 30 tornadoes in an outbreak")
 direct.label(p, list("angled.boxes"))
+```
+
+## Casualty predictions 1-D
+```{r}
+( Plevels <- round(quantile(BigDays.sfdfT$P, probs = c(.05, .75, .9)), 2) )
+( Plevels <- c(10, 40, 80) )
+theta <- .261
+nCthresh <- 50
+Area <- 40 # Area of 10\% tor probability April 12, 2020 outbreak 12UTC
+
+predictions  <- predict(modelFinalC, 
+                        newdata = data.frame(P = Plevels[1],
+                                             Lat = mean(BigDays.sfdfT$Lat),
+                                             Lon = mean(BigDays.sfdfT$Lon),
+                                             Year = 2018,
+                                             CAPE = mean(BigDays.sfdfT$CAPE),
+                                             DLBS = seq(1, 4, by = .25),
+                                             SLBS = mean(BigDays.sfdfT$SLBS)),
+                        type = "response",
+                        se.fit = TRUE)
+plot.predictions <- data.frame(P = Plevels[1],
+                               probability = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit),
+                               probabilityU = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit + 2 * predictions$se.fit),
+                               probabilityL = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit - 2 * predictions$se.fit),
+                               DLBS = seq(1, 4, by = .25) * 10)
+
+predictions  <- predict(modelFinalC, 
+                        newdata = data.frame(P = Plevels[2],
+                                             Lat = mean(BigDays.sfdfT$Lat),
+                                             Lon = mean(BigDays.sfdfT$Lon),
+                                             Year = 2018,
+                                             CAPE = mean(BigDays.sfdfT$CAPE),
+                                             DLBS = seq(1, 4, by = .25),
+                                             SLBS = mean(BigDays.sfdfT$SLBS)),
+                        type = "response",
+                        se.fit = TRUE)
+
+plot.predictions2 <- data.frame(P = Plevels[2],
+                               probability = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit),
+                               probabilityU = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit + 2 * predictions$se.fit),
+                               probabilityL = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit - 2 * predictions$se.fit),
+                               DLBS = seq(1, 4, by = .25) * 10)
+
+predictions  <- predict(modelFinalC, 
+                        newdata = data.frame(P = Plevels[3],
+                                             Lat = mean(BigDays.sfdfT$Lat),
+                                             Lon = mean(BigDays.sfdfT$Lon),
+                                             Year = 2018,
+                                             CAPE = mean(BigDays.sfdfT$CAPE),
+                                             DLBS = seq(1, 4, by = .25),
+                                             SLBS = mean(BigDays.sfdfT$SLBS)),
+                        type = "response",
+                        se.fit = TRUE)
+
+plot.predictions3 <- data.frame(P = Plevels[3],
+                               probability = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit),
+                               probabilityU = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit + 2 * predictions$se.fit),
+                               probabilityL = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit - 2 * predictions$se.fit),
+                               DLBS = seq(1, 4, by = .25) * 10)
+
+
+plot.predictions <- rbind(plot.predictions, plot.predictions2, plot.predictions3)
+
+library(ggplot2)
+ggplot(plot.predictions, aes(x = DLBS, y = probability, color = factor(P * 100000, levels = rev(Plevels * 100000)))) +
+  geom_line(size = 2) +
+  scale_y_continuous(limits = c(0, .3), labels = scales::percent) +
+  scale_colour_ordinal(name = "Population", direction = -1, alpha = .6, labels = c("8,000,000", "4,000,000", "1,000,000")) +
+  ylab(paste("Probability of at least", nCthresh, "casualties")) +
+  xlab("Deep-layer bulk shear (m/s)") +
+  theme_minimal()
 ```
 
 ## April 12, 2020 case https://www.spc.noaa.gov/cgi-bin-spc/getacrange.pl?date0=20200412&date1=20200412
