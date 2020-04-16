@@ -127,6 +127,7 @@ predictions  <- predict(modelFinal,
 
 ```{r}
 ( CAPElevels <- round(quantile(BigDays.sfdfT$maxCAPE, probs = c(.05, .5, .95))) )
+CAPElevels <- c(100, 2000, 5000)
 theta <- 6.246
 nTthresh <- 30
 Area <- 40 # Area of 10\% tor probability April 12, 2020 outbreak 12UTC
@@ -140,8 +141,8 @@ predictions  <- predict(modelFinal,
                         se.fit = TRUE)
 plot.predictions <- data.frame(CAPE = CAPElevels[1],
                                probability = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit),
-                               probabilityU = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit + 2 * predictions$se.fit),
-                               probabilityL = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit - 2 * predictions$se.fit),
+                               probabilityU = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit + 1 * predictions$se.fit),
+                               probabilityL = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit - 1 * predictions$se.fit),
                                DLBS = seq(1, 4, by = .25) * 10)
 
 predictions  <- predict(modelFinal, 
@@ -154,8 +155,8 @@ predictions  <- predict(modelFinal,
 
 plot.predictions2 <- data.frame(CAPE = CAPElevels[2],
                                probability = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit),
-                               probabilityU = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit + 2 * predictions$se.fit),
-                               probabilityL = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit - 2 * predictions$se.fit),
+                               probabilityU = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit + 1 * predictions$se.fit),
+                               probabilityL = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit - 1 * predictions$se.fit),
                                DLBS = seq(1, 4, by = .25) * 10)
 
 predictions  <- predict(modelFinal, 
@@ -168,8 +169,8 @@ predictions  <- predict(modelFinal,
 
 plot.predictions3 <- data.frame(CAPE = CAPElevels[3],
                                probability = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit),
-                               probabilityU = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit + 2 * predictions$se.fit),
-                               probabilityL = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit - 2 * predictions$se.fit),
+                               probabilityU = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit + 1 * predictions$se.fit),
+                               probabilityL = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit - 1 * predictions$se.fit),
                                DLBS = seq(1, 4, by = .25) * 10)
 
 
@@ -177,8 +178,12 @@ plot.predictions <- rbind(plot.predictions, plot.predictions2, plot.predictions3
 
 
 library(ggplot2)
-ggplot(plot.predictions, aes(x = DLBS, y = probability, color = factor(CAPE, levels = rev(CAPElevels)))) +
+ggplot(plot.predictions, aes(x = DLBS,
+                             y = probability, 
+                             color = factor(CAPE, levels = rev(CAPElevels)),
+                             group = factor(CAPE, levels = rev(CAPElevels)))) +
   geom_line(size = 2) +
+  geom_ribbon(aes(ymin = probabilityL, ymax = probabilityU), color = NA, fill = "gray80", alpha = .2) +
   scale_y_continuous(limits = c(0, 1), labels = scales::percent) +
   scale_colour_ordinal(name = "CAPE (J/kg)", direction = -1, alpha = .6) +
   ylab(paste("Probability of at least", nTthresh, "tornadoes")) +
@@ -215,8 +220,7 @@ Start with shear (DLBS)
 ```{r}
 ( Plevels <- c(10, 40, 80) ) # 100,000s
 theta <- .261
-nCthresh <- 50
-Area <- 40 # Area of 10\% tor probability April 12, 2020 outbreak 12UTC
+nCthresh <- 50 # arbitrary threshold number of casualties
 
 predictions  <- predict(modelFinalC, 
                         newdata = data.frame(P = Plevels[1],
@@ -230,8 +234,8 @@ predictions  <- predict(modelFinalC,
                         se.fit = TRUE)
 plot.predictions <- data.frame(P = Plevels[1],
                                probability = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit),
-                               probabilityU = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit + 2 * predictions$se.fit),
-                               probabilityL = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit - 2 * predictions$se.fit),
+                               probabilityU = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit + 1 * predictions$se.fit),
+                               probabilityL = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit - 1 * predictions$se.fit),
                                DLBS = seq(1, 4, by = .25) * 10)
 
 predictions  <- predict(modelFinalC, 
@@ -247,8 +251,8 @@ predictions  <- predict(modelFinalC,
 
 plot.predictions2 <- data.frame(P = Plevels[2],
                                probability = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit),
-                               probabilityU = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit + 2 * predictions$se.fit),
-                               probabilityL = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit - 2 * predictions$se.fit),
+                               probabilityU = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit + 1 * predictions$se.fit),
+                               probabilityL = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit - 1 * predictions$se.fit),
                                DLBS = seq(1, 4, by = .25) * 10)
 
 predictions  <- predict(modelFinalC, 
@@ -264,17 +268,21 @@ predictions  <- predict(modelFinalC,
 
 plot.predictions3 <- data.frame(P = Plevels[3],
                                probability = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit),
-                               probabilityU = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit + 2 * predictions$se.fit),
-                               probabilityL = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit - 2 * predictions$se.fit),
+                               probabilityU = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit + 1 * predictions$se.fit),
+                               probabilityL = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit - 1 * predictions$se.fit),
                                DLBS = seq(1, 4, by = .25) * 10)
 
 
 plot.predictions <- rbind(plot.predictions, plot.predictions2, plot.predictions3)
 
 cbPalette <- c("#E69F00", "#56B4E9", "#009E73")
-(p1 <- ggplot(plot.predictions, aes(x = DLBS, y = probability, color = factor(P * 100000, levels = rev(Plevels * 100000)))) +
+(p1 <- ggplot(plot.predictions, aes(x = DLBS, 
+                                    y = probability, 
+                                    color = factor(P * 100000, levels = rev(Plevels * 100000)),
+                                    group = factor(P * 100000, levels = rev(Plevels * 100000)))) +
   geom_line(size = 2) +
-  scale_y_continuous(limits = c(0, .25), labels = scales::percent) +
+  geom_ribbon(aes(ymin = probabilityL, ymax = probabilityU), color = NA, fill = "gray80", alpha = .2) +
+  scale_y_continuous(limits = c(0, .3), labels = scales::percent) +
   scale_colour_manual(name = "Population", labels = c("8M", "4M", "1M"), values = cbPalette) + 
   ylab(paste("Probability of at least", nCthresh, "casualties")) +
   xlab("Deep-layer bulk shear (m/s)") +
@@ -285,9 +293,7 @@ Repeat for with CAPE
 ```{r}
 ( Plevels <- c(10, 40, 80) ) # 100,000s
 theta <- .261
-nCthresh <- 50
-Area <- 40 # Area of 10\% tor probability April 12, 2020 outbreak 12UTC
-
+nCthresh <- 50 # arbitrary threshold number of casualties
 predictions  <- predict(modelFinalC, 
                         newdata = data.frame(P = Plevels[1],
                                              Lat = mean(BigDays.sfdfT$Lat),
@@ -300,8 +306,8 @@ predictions  <- predict(modelFinalC,
                         se.fit = TRUE)
 plot.predictions <- data.frame(P = Plevels[1],
                                probability = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit),
-                               probabilityU = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit + 2 * predictions$se.fit),
-                               probabilityL = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit - 2 * predictions$se.fit),
+                               probabilityU = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit + 1 * predictions$se.fit),
+                               probabilityL = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit - 1 * predictions$se.fit),
                                CAPE = seq(0, 5, by = .25) * 1000)
 
 predictions  <- predict(modelFinalC, 
@@ -317,8 +323,8 @@ predictions  <- predict(modelFinalC,
 
 plot.predictions2 <- data.frame(P = Plevels[2],
                                probability = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit),
-                               probabilityU = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit + 2 * predictions$se.fit),
-                               probabilityL = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit - 2 * predictions$se.fit),
+                               probabilityU = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit + 1 * predictions$se.fit),
+                               probabilityL = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit - 1 * predictions$se.fit),
                                CAPE = seq(0, 5, by = .25) * 1000)
 
 predictions  <- predict(modelFinalC, 
@@ -334,16 +340,20 @@ predictions  <- predict(modelFinalC,
 
 plot.predictions3 <- data.frame(P = Plevels[3],
                                probability = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit),
-                               probabilityU = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit + 2 * predictions$se.fit),
-                               probabilityL = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit - 2 * predictions$se.fit),
+                               probabilityU = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit + 1 * predictions$se.fit),
+                               probabilityL = 1 - pnbinom(nCthresh, size = theta, mu = predictions$fit - 1 * predictions$se.fit),
                                CAPE = seq(0, 5, by = .25) * 1000)
 
 
 plot.predictions <- rbind(plot.predictions, plot.predictions2, plot.predictions3)
 
-( p2 <- ggplot(plot.predictions, aes(x = CAPE, y = probability, color = factor(P * 100000, levels = rev(Plevels * 100000)))) +
+( p2 <- ggplot(plot.predictions, aes(x = CAPE, 
+                                     y = probability, 
+                                     color = factor(P * 100000, levels = rev(Plevels * 100000)),
+                                     group = factor(P * 100000, levels = rev(Plevels * 100000)))) +
   geom_line(size = 2) +
-  scale_y_continuous(limits = c(0, .25), labels = scales::percent) +
+  geom_ribbon(aes(ymin = probabilityL, ymax = probabilityU), color = NA, fill = "gray80", alpha = .2) +
+  scale_y_continuous(limits = c(0, .3), labels = scales::percent) +
    scale_colour_manual(name = "Population", labels = c("8M", "4M", "1M"), values = cbPalette) + 
   ylab(paste("Probability of at least", nCthresh, "casualties")) +
   xlab("CAPE (J/kg)") +
@@ -352,6 +362,77 @@ plot.predictions <- rbind(plot.predictions, plot.predictions2, plot.predictions3
 library(patchwork)
 
 p1 + p2
+```
+
+## Casualty predictions 2-D
+```{r}
+theta <- modelFinalC$theta
+nCthresh <- 25
+
+pgrid1 <- expand.grid(CAPE = seq(1, 5, .05),
+                     DLBS = seq(1, 4, .05),
+                     SLBS = mean(BigDays.sfdfT$SLBS),
+                     P = 40, # 4 million
+                     Year = 2018,
+                     Lat = 42.5, # Sioux City IA and Birmingham AL
+                     Lon = -96.4,
+                     Location = "Sioux City, IA") 
+pgrid2 <- expand.grid(CAPE = seq(1, 5, .05),
+                     DLBS = seq(1, 4, .05),
+                     SLBS = mean(BigDays.sfdfT$SLBS),
+                     P = 40, # 4 million
+                     Year = 2018,
+                     Lat = 33.5,
+                     Lon = -86.8,
+                     Location = "Birmingham, AL") 
+pgrid <- rbind(pgrid1, pgrid2)
+
+
+predictions <- predict.glm(modelFinalC, newdata = pgrid, type = "response")
+pgrid$probability <- 1 - pnbinom(nCthresh, size = theta, mu = predictions)
+
+ggplot(pgrid, aes(x = CAPE * 1000, y = DLBS * 10, fill = probability)) +
+          geom_raster(alpha = .8) +
+          scale_fill_gradientn(colours = rev(cbPalette), name = "Probability", labels = scales::percent) +
+          facet_wrap(~ Location) + 
+          ylab("Deep-layer bulk shear (m/s)") +
+          xlab("CAPE (J/kg)") + 
+          theme_minimal()
+```
+
+Percentage point differences
+```{r}
+pgrid1 <- expand.grid(CAPE = seq(1, 5, .05),
+                     DLBS = seq(1, 4, .05),
+                     SLBS = mean(BigDays.sfdfT$SLBS),
+                     P = 40, # 4 million
+                     Year = 2018,
+                     Lat = 42.5, # Sioux Falls IA 
+                     Lon = -96.4) 
+predictions <- predict.glm(modelFinalC, newdata = pgrid1, type = "response")
+probs1 <- 1 - pnbinom(nCthresh, size = theta, mu = predictions)
+pgrid1$probability <- probs1
+
+pgrid2 <- expand.grid(CAPE = seq(1, 5, .05),
+                     DLBS = seq(1, 4, .05),
+                     SLBS = mean(BigDays.sfdfT$SLBS),
+                     P = 40, # 4 million
+                     Year = 2018,
+                     Lat = 33.5, #Birmingham AL
+                     Lon = -86.8) 
+predictions <- predict.glm(modelFinalC, newdata = pgrid2, type = "response")
+probs2 <- 1 - pnbinom(nCthresh, size = theta, mu = predictions)
+
+pgrid1$ppDiff <- (probs2 - probs1) * 100
+
+( p <- ggplot(pgrid1, aes(x = CAPE * 1000, y = DLBS * 10, fill = probability)) +
+          geom_raster() +
+          scale_fill_gradientn(colours = rev(cbPalette)) +
+ #         geom_contour(aes(color = ..level.., z = ppDiff), breaks = seq(2, 12, by = 2), color = "black") +
+          ylab("Deep-layer bulk shear (m/s)") +
+          xlab("CAPE (J/kg)") + 
+          theme_minimal() )
+direct.label(p, list("angled.boxes"))
 ```
 
 ## April 12, 2020 case https://www.spc.noaa.gov/cgi-bin-spc/getacrange.pl?date0=20200412&date1=20200412
