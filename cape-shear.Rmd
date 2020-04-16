@@ -60,7 +60,7 @@ summary(modelFinal)
 hist(resid(modelFinal))
 range(exp(predict(modelFinal)))
 plot(log(BigDays.sfdfT$nT), predict(modelFinal))
-cor(BigDays.sfdfT$nT, predict(modelFinal, type = "response"))
+cor.test(BigDays.sfdfT$nT, predict(modelFinal, type = "response"))
 mean(abs(BigDays.sfdfT$nT - predict(modelFinal, type = "response")))
 mean(abs(BigDays.sfdfT$nT - predict(modelFinal, type = "response")))/(max(BigDays.sfdfT$nT) - min(BigDays.sfdfT$nT))
 mean(abs(BigDays.sfdfT$nT - predict(modelFinal, type = "response")))/(max(predict(modelFinal, type = "response")) - min(predict(modelFinal, type = "response")))
@@ -75,6 +75,20 @@ modelFinal <- glm.nb(nT ~ HullArea + maxCAPE + maxBS_deep + maxBS_shallow, data 
 summary(modelFinal)
 ```
 
+## Observed versus predicted plot
+```{r}
+df <- data.frame(Observed = BigDays.sfdfT$nT,
+                 Predicted = predict(modelFinal, type = "response"))
+
+ggplot(df, aes(x = Observed, y = Predicted)) +
+  geom_abline() +
+  geom_point(col = "gray70") +
+  geom_smooth(method = lm, size = 1, col = "black") +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_minimal() 
+```
+
 ## Casualty model
 ```{r}
 modelInitialC <- glm.nb(GroupDayCas ~ P + Lat + Lon + Year + CAPE + CIN + DLBS + SLBS, data = BigDays.sfdfT)
@@ -86,22 +100,52 @@ summary(modelFinalC)
 hist(resid(modelFinalC))
 range(exp(predict(modelFinalC)))
 plot(log(BigDays.sfdfT$GroupDayCas), predict(modelFinalC))
-cor(BigDays.sfdfT$GroupDayCas, exp(predict(modelFinalC)))
+cor.test(BigDays.sfdfT$GroupDayCas, exp(predict(modelFinalC)))
+
+mean(abs(BigDays.sfdfT$GroupDayCas - predict(modelFinalC, type = "response")))
+mean(abs(BigDays.sfdfT$GroupDayCas - predict(modelFinalC, type = "response")))/(max(BigDays.sfdfT$GroupDayCas) - min(BigDays.sfdfT$GroupDayCas))
+mean(abs(BigDays.sfdfT$GroupDayCas - predict(modelFinalC, type = "response")))/(max(predict(modelFinalC, type = "response")) - min(predict(modelFinalC, type = "response")))
+
+```
+
+## Observed versus predicted plot
+```{r}
+df <- data.frame(Observed = BigDays.sfdfT$GroupDayCas,
+                 Predicted = predict(modelFinalC, type = "response"))
+
+ggplot(df, aes(x = Observed +.54, y = Predicted)) +
+  geom_abline() +
+  geom_point(col = "gray70") +
+  geom_smooth(method = lm, size = 1, col = "black") +
+  xlab("Observed") +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_minimal() 
 ```
 
 ## Cross validation
 ```{r}
-Count <- numeric()
+TCount <- numeric()
+CCount <- numeric()
+
 for(i in 1:nrow(BigDays.sfdfT)){
-Count[i] <- predict(glm.nb(nT ~ A + CAPE + DLBS + SLBS, data = BigDays.sfdfT[-i, ]), 
+TCount[i] <- predict(glm.nb(nT ~ A + CAPE + DLBS + SLBS, data = BigDays.sfdfT[-i, ]), 
+                       newdata = BigDays.sfdfT[i,],
+                       type = "response")
+CCount[i] <- predict(glm.nb(GroupDayCas ~ P + Lat + Lon + Year + CAPE + DLBS + SLBS, data = BigDays.sfdfT[-i, ]), 
                        newdata = BigDays.sfdfT[i,],
                        type = "response")
 }
-cor(BigDays.sfdfT$nT, Count)
-mean(abs(BigDays.sfdfT$nT - Count))
-mean(abs(BigDays.sfdfT$nT - Count))/(max(BigDays.sfdfT$nT) - min(BigDays.sfdfT$nT))
+cor(BigDays.sfdfT$nT, TCount)
+cor(BigDays.sfdfT$GroupDayCas, CCount)
+
+mean(abs(BigDays.sfdfT$nT - TCount))
+mean(abs(BigDays.sfdfT$nT - TCount))/(max(BigDays.sfdfT$nT) - min(BigDays.sfdfT$nT))
 mean(abs(BigDays.sfdfT$nT - predict(modelFinal, type = "response")))/(max(predict(modelFinal, type = "response")) - min(predict(modelFinal, type = "response")))
 
+mean(abs(BigDays.sfdfT$GroupDayCas - CCount))
+mean(abs(BigDays.sfdfT$GroupDayCas - CCount))/(max(BigDays.sfdfT$GroupDayCas) - min(BigDays.sfdfT$GroupDayCas))
+mean(abs(BigDays.sfdfT$GroupDayCas - predict(modelFinalC, type = "response")))/(max(predict(modelFinalC, type = "response")) - min(predict(modelFinalC, type = "response")))
 ```
 
 ## Tornado predictions 1-D
