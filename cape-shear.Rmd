@@ -105,7 +105,6 @@ cor.test(BigDays.sfdfT$GroupDayCas, exp(predict(modelFinalC)))
 mean(abs(BigDays.sfdfT$GroupDayCas - predict(modelFinalC, type = "response")))
 mean(abs(BigDays.sfdfT$GroupDayCas - predict(modelFinalC, type = "response")))/(max(BigDays.sfdfT$GroupDayCas) - min(BigDays.sfdfT$GroupDayCas))
 mean(abs(BigDays.sfdfT$GroupDayCas - predict(modelFinalC, type = "response")))/(max(predict(modelFinalC, type = "response")) - min(predict(modelFinalC, type = "response")))
-
 ```
 
 ## Observed versus predicted plot
@@ -125,14 +124,19 @@ ggplot(df, aes(x = Observed +.54, y = Predicted)) +
 
 ## Cross validation
 ```{r}
+formulaT <- nT ~ A + CAPE + DLBS + SLBS
+formulaC <- GroupDayCas ~ P + Lat + Lon + Year + CAPE + DLBS + SLBS + nT
+modelFinalT <- glm.nb(formulaT, data = BigDays.sfdfT)
+modelFinalC <- glm.nb(formulaC, data = BigDays.sfdfT)
+
 TCount <- numeric()
 CCount <- numeric()
 
 for(i in 1:nrow(BigDays.sfdfT)){
-TCount[i] <- predict(glm.nb(nT ~ A + CAPE + DLBS + SLBS, data = BigDays.sfdfT[-i, ]), 
+TCount[i] <- predict(glm.nb(formulaT, data = BigDays.sfdfT[-i, ]), 
                        newdata = BigDays.sfdfT[i,],
                        type = "response")
-CCount[i] <- predict(glm.nb(GroupDayCas ~ P + Lat + Lon + Year + CAPE + DLBS + SLBS, data = BigDays.sfdfT[-i, ]), 
+CCount[i] <- predict(glm.nb(formulaC, data = BigDays.sfdfT[-i, ]), 
                        newdata = BigDays.sfdfT[i,],
                        type = "response")
 }
@@ -141,11 +145,18 @@ cor(BigDays.sfdfT$GroupDayCas, CCount)
 
 mean(abs(BigDays.sfdfT$nT - TCount))
 mean(abs(BigDays.sfdfT$nT - TCount))/(max(BigDays.sfdfT$nT) - min(BigDays.sfdfT$nT))
-mean(abs(BigDays.sfdfT$nT - predict(modelFinal, type = "response")))/(max(predict(modelFinal, type = "response")) - min(predict(modelFinal, type = "response")))
+mean(abs(BigDays.sfdfT$nT - predict(modelFinalT, type = "response")))/(max(predict(modelFinalT, type = "response")) - min(predict(modelFinalT, type = "response")))
 
 mean(abs(BigDays.sfdfT$GroupDayCas - CCount))
 mean(abs(BigDays.sfdfT$GroupDayCas - CCount))/(max(BigDays.sfdfT$GroupDayCas) - min(BigDays.sfdfT$GroupDayCas))
 mean(abs(BigDays.sfdfT$GroupDayCas - predict(modelFinalC, type = "response")))/(max(predict(modelFinalC, type = "response")) - min(predict(modelFinalC, type = "response")))
+```
+
+## Under/over predictions
+```{r}
+df <- data.frame(Observed = BigDays.sfdfT$GroupDayCas,
+                 Predicted = CCount) %>%
+  mutate(Diff = Observed - Predicted)
 ```
 
 ## Tornado predictions 1-D
