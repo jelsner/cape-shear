@@ -65,14 +65,8 @@ mean(abs(BigDays.sfdfT$nT - predict(modelFinal, type = "response")))
 mean(abs(BigDays.sfdfT$nT - predict(modelFinal, type = "response")))/(max(BigDays.sfdfT$nT) - min(BigDays.sfdfT$nT))
 mean(abs(BigDays.sfdfT$nT - predict(modelFinal, type = "response")))/(max(predict(modelFinal, type = "response")) - min(predict(modelFinal, type = "response")))
 
-
-modelglmer.nb <- glmer.nb(nT ~ scale(HullArea) + scale(maxCAPE) + scale(maxBS_deep) + scale(maxBS_shallow) + (1|Season), data = BigDays.sfdfT)
-summary(modelglmer.nb) # no convergence if interaction term is included
-
-summary(glm.nb(nT ~ scale(HullArea) + scale(maxCAPE) + scale(avgCIN) + scale(maxBS_deep) + scale(maxBS_shallow), data = BigDays.sfdfT))
-
-modelFinal <- glm.nb(nT ~ HullArea + maxCAPE + maxBS_deep + maxBS_shallow, data = BigDays.sfdfT[BigDays.sfdfT$Mo %in% c(10, 11),])
-summary(modelFinal)
+modelglmer.nb <- glmer.nb(nT ~ scale(A) + scale(CAPE) + scale(DLBS) + scale(SLBS) + (1|Month), data = BigDays.sfdfT)
+summary(modelglmer.nb) # mixed effects model does not improve things
 ```
 
 ## Observed versus predicted plot
