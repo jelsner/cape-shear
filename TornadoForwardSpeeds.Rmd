@@ -1,0 +1,148 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+Leon County Tornado 4/23/2020
+
+https://nwschat.weather.gov/p.php?pid=202004281348-KTAE-NOUS42-PNSTAE
+
+START DATE:             04/23/2020
+START TIME:             06:22 PM EDT
+START LOCATION:         2 SW LAKE JACKSON / LEON COUNTY / FL
+START LAT/LON:          30.5181 / -84.3538
+
+END DATE:               04/23/2020
+END TIME:               06:38 PM EDT
+END LOCATION:           1 WSW PISGAH CHURCH / LEON COUNTY / FL
+END LAT/LON:            30.5495 / -84.1755
+
+SURVEY SUMMARY:
+A TORNADO TOUCHED DOWN JUST SOUTH OF NORTH MONROE STREET AND
+MOVED EAST INTO A NEIGHBORHOOD WHERE THERE WAS WIDESPREAD LIMB
+AND TREE DAMAGE. IT LIKELY THEN CROSSED OVER THE LAKE AND
+IMPACTED ELINOR KLAPP PHIPPS PARK WHERE SNAPPED TREE TRUNKS WERE
+OBSERVED. IT PRODUCED SOME OF THE MOST WIDESPREAD TREE DAMAGE,
+INCLUDING SNAPPED TRUCKS, NEAR OX BOTTOM ROAD BEFORE CROSSING
+THOMASVILLE ROAD.  IT MOVED NORTHEAST THROUGH KILLEARN ESTATES
+AND KILLEARN ACRES WITH ADDITIONAL WIDESPREAD TREE AND LIMB
+DAMAGE AND A FEW SPOTS OF SNAPPED AND UPROOTED TREES. THE LAST
+SIGNIFICANT DAMAGE WAS ADDITIONAL SNAPPED TREES ON BRADFORDVILLE
+ROAD. ADDITIONAL TREE DAMAGE WAS SPORADIC TO THE EAST OF HERE AS
+IS LIKELY OUTFLOW AS THE TORNADO LIFTED. THE HIGHEST DAMAGE WAS
+RATED 95 MPH DUE TO SNAPPED TREES BUT THE MAJORITY OF THE DAMAGE
+WAS EF0 TYPE TREE DAMAGE. 
+
+## Estimate forward speed
+
+Packages
+```{r}
+library(tidyverse)
+library(lubridate)
+library(sf)
+```
+
+### Single tornado
+
+Create a simple feature data frame with start and end points as separate POINT geometries.
+```{r}
+Tor.df <- data.frame(id = "TLH",
+                     time = c("2020-04-23 18:22:00 EDT", "2020-04-23 18:38:00"),
+                     lat = c(30.5181, 30.5495), 
+                     lon = c(-84.3538, -84.1755)) %>%
+  mutate(time = as_datetime(time, 
+                            tz = "America/New_York"))
+```
+
+```{r}
+Tor.sf <- st_as_sf(Tor.df,
+                   coords = c("lon", "lat"),
+                   crs = 4326) %>%
+  st_transform(crs = 32616)
+ds <- as.numeric(st_distance(Tor.sf)[1, 2])
+dt <- as.numeric(difftime(Tor.sf$time[2], Tor.sf$time[1], units = "secs"))
+ds/dt  # speed in m/s
+```
+
+### Multiple tornadoes 
+
+Read storm data. ftp://ftp.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/legacy/
+```{r}
+SD2013.df <- read.csv(file = "stormdata_2013.csv")
+SD2010.df <- read.csv(file = "ftp://ftp.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/legacy/stormdata_2010.csv")
+SD2011.df <- read.csv(file = "ftp://ftp.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/legacy/stormdata_2011.csv")
+SD2012.df <- read.csv(file = "ftp://ftp.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/legacy/stormdata_2012.csv")
+
+SD2009.df <- read.csv(file = "ftp://ftp.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/legacy/Stormdata_2009.csv")  # Capitalized S before 2010
+SD2008.df <- read.csv(file = "ftp://ftp.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/legacy/Stormdata_2008.csv")
+SD2007.df <- read.csv(file = "ftp://ftp.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/legacy/Stormdata_2007.csv") %>% 
+  filter(MONTH_NAME != "January") # EF scale implementated after January 2007
+
+SD.df <- bind_rows(SD2010.df, SD2011.df, SD2012.df, SD2013.df)
+
+SD2.df <- SD.df %>%
+  filter(EVENT_TYPE == "Tornado") %>%
+  select(TOR_F_SCALE, TOR_LENGTH, TOR_WIDTH, BEGIN_DATE_TIME, END_DATE_TIME) %>%
+  mutate(PathLength = TOR_LENGTH * 1609.344,
+         Begin = mdy_hms(BEGIN_DATE_TIME, tz = "America/New_York"), # hms starting with stormdata_2010
+         End = mdy_hms(END_DATE_TIME, tz = "America/New_York"),
+          Duration = as.numeric(difftime(End, Begin, units = "secs")),
+         ForwardSpeed = PathLength/Duration) %>%
+  filter(!is.na(ForwardSpeed) & Duration > 300)
+
+SD1.df <- bind_rows(SD2007.df, SD2008.df, SD2009.df)
+
+SD3.df <- SD1.df %>%
+  filter(EVENT_TYPE == "Tornado") %>%
+  select(TOR_F_SCALE, TOR_LENGTH, TOR_WIDTH, BEGIN_DATE_TIME, END_DATE_TIME) %>%
+  mutate(PathLength = TOR_LENGTH * 1609.344,
+         Begin = mdy_hm(BEGIN_DATE_TIME, tz = "America/New_York"), # hm before 2010
+         End = mdy_hm(END_DATE_TIME, tz = "America/New_York"),
+         Duration = as.numeric(difftime(End, Begin, units = "secs")),
+         ForwardSpeed = PathLength/Duration) %>%
+  filter(!is.na(ForwardSpeed) & Duration > 300)
+
+SD4.df <- bind_rows(SD3.df, SD2.df)
+
+summary(SD3.df$ForwardSpeed)
+dim(SD2.df)
+quantile(SD2.df$ForwardSpeed, probs = c(.9, .95, .99, .995))
+```
+
+```{r}
+SD4.df %>%
+  group_by(TOR_F_SCALE) %>%
+  summarize(N = n(),
+            medianFS = round(median(ForwardSpeed), 1),
+            meanFS = round(mean(ForwardSpeed), 1)) %>%
+  rename(Damage = TOR_F_SCALE)
+
+library(gt)
+
+SD4.df %>%
+  group_by(TOR_F_SCALE) %>%
+  summarize(N = n(),
+            Median = round(median(ForwardSpeed), 1),
+            Mean = round(mean(ForwardSpeed), 1)) %>%
+  rename(Damage = TOR_F_SCALE) %>%
+  gt() %>%
+  tab_header(
+    title = "Tornado Forward Speeds (m/s)",
+    subtitle = "2007-2013"
+  ) %>%
+  fmt_markdown(
+    columns = vars(Damage)
+  ) %>%
+  fmt_number(
+    columns = vars(N, Median, Mean),
+    drop_trailing_zeros = TRUE
+  )
+
+
+SD4.df %>%
+  mutate(Month = month(Begin)) %>%
+  group_by(Month) %>%
+  summarize(nT = n(),
+            medianFS = median(ForwardSpeed),
+            meanFS = mean(ForwardSpeed))
+```
