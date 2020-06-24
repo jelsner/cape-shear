@@ -31,6 +31,259 @@ BigDays.sfdfT <- BigDays.sfdfT %>%
 dim(BigDays.sfdfT)
 ```
 
+## Generate 4 figures of example clusters. 
+```{r}
+#Extract the big day using the unique ID created.
+cluster1 <- BigDays.sfdfT %>%
+  filter(ID == 19940719217)
+
+#Generate a convex hull around the cluster.
+cluster1 <- st_convex_hull(cluster1)
+
+#Extract all tornadoes that are in the Day 1
+cluster1torns <- All_Tornadoes %>%
+  filter(ID == 19940719217)
+
+cluster1torns$mag <- as.numeric(cluster1torns$mag)
+cluster1torns$mag2 <- cut(cluster1torns$mag, breaks=c(-1, 0, 1, 2, 3, 4, 5))
+```
+
+```{r}
+A <- tm_shape(stateBorders) + 
+  tm_borders(col = "gray70") +
+tm_shape(cluster1) + 
+  tm_borders(col = "gray15", 
+             alpha = 1, 
+             lwd = 2) +
+  tm_scale_bar(color.dark = "gray70", 
+               width = .3, 
+               size = 1, 
+               lwd = 2, 
+               position = c("left","bottom")) +
+    tm_compass(color.dark = "gray70", 
+             size = 5, 
+             lwd = 2, 
+             position = c("left","top")) + 
+    tm_format("World", 
+              attr.position = c("left", "top"),
+              legend.frame = FALSE,
+              inner.margins = c(.25, .2, .2, .2)) +
+    tm_layout(legend.bg.color = "white", 
+            legend.text.size = .75) + 
+  tm_shape(cluster1torns, 
+         projection = "merc", 
+         is.master = TRUE) +
+    tm_symbols(size = 3, 
+               col = "mag2", 
+               n = 6, 
+               palette = cr, 
+               alpha = 0.8, 
+               border.alpha = 0, 
+               labels = c("0", "1", "2", "3", "4", "5"), 
+               title.col = "EF Rating") +
+    tm_layout(title = "July 19, 1994 \n 10 tornadoes", 
+              title.position = c("center", "top"), 
+              legend.title.size = 1.4,
+              legend.position = c("right", "bottom"), 
+              legend.stack = "horizontal",
+              legend.frame = FALSE, 
+              legend.text.size = 1.2, 
+              legend.width = -0.2, 
+              title.size = 1.5)
+A  
+```
+
+```{r}
+cluster2 <- BigDays.sfdfT %>%
+  filter(ID == 199906061644)
+
+cluster2 <- st_convex_hull(cluster2)
+
+cluster2torns <- All_Tornadoes %>%
+  filter(ID == 199906061644) 
+
+cluster2 %>%
+  summarize(Area = HullArea/(10**6),
+            Duration = Duration/3600)
+
+cluster2torns$mag <- as.numeric(cluster2torns$mag)
+cluster2torns$mag2 <- cut(cluster2torns$mag, breaks=c(-1, 0, 1, 2, 3, 4, 5))
+```
+
+```{r}
+B <- tm_shape(stateBorders) + 
+  tm_borders(col = "gray70") +
+tm_shape(cluster2) + 
+  tm_borders(col = "gray15", 
+             alpha = 1, 
+             lwd = 2) +
+  tm_scale_bar(color.dark = "gray70", 
+               width = .2, 
+               size = 1, 
+               lwd = 2, 
+               position = c("left","bottom")) +
+    tm_compass(color.dark = "gray70", 
+             size = 5, 
+             lwd = 2, 
+             position = c("left","top")) + 
+    tm_format("World", 
+              attr.position = c("left", "top"),
+              legend.frame = FALSE,
+              inner.margins = c(.1, .1, .1, .1)) +
+    tm_layout(legend.bg.color = "white", 
+            legend.text.size = .75) + 
+  tm_shape(cluster2torns, 
+         projection = "merc", 
+         is.master = TRUE) +
+    tm_symbols(size = 3, 
+               col = "mag2", 
+               n = 6, 
+               palette = cr, 
+               alpha = 0.8, 
+               border.alpha = 0, 
+               labels = c("0", "1", "2", "3", "4", "5"), 
+               title.col = "EF Rating") +
+    tm_layout(title = "June 6, 1999 \n 36 tornadoes", 
+              title.position = c("center", "top"), 
+              legend.title.size = 1.4,
+              legend.position = c("right", "bottom"), 
+              legend.stack = "horizontal",
+              legend.frame = FALSE, 
+              legend.text.size = 1.2, 
+              legend.width = -0.15, 
+              title.size = 1.5)
+  B
+```
+
+```{r}
+cluster3 <- BigDays.sfdfT %>%
+  filter(ID == 200802053876)
+
+cluster3 <- st_convex_hull(cluster3)
+
+cluster3torns <- All_Tornadoes %>%
+  filter(ID == 200802053876) 
+
+cluster3 %>%
+  summarize(Area = HullArea/(10**6),
+            Duration = Duration/3600)
+
+cluster3torns$mag <- as.numeric(cluster3torns$mag)
+cluster3torns$mag2 <- cut(cluster3torns$mag, breaks=c(-1, 0, 1, 2, 3, 4, 5))
+```
+
+```{r}
+C <- tm_shape(stateBorders) + 
+  tm_borders(col = "gray70") +
+tm_shape(cluster3) + 
+  tm_borders(col = "gray15", 
+             alpha = 1, 
+             lwd = 2) +
+  tm_scale_bar(color.dark = "gray70", 
+               width = .3, 
+               size = 1, 
+               lwd = 2, 
+               position = c("left","bottom")) +
+    tm_compass(color.dark = "gray70", 
+             size = 5, 
+             lwd = 2, 
+             position = c("left","top")) + 
+    tm_format("World", 
+              attr.position = c("left", "top"),
+              legend.frame = FALSE,
+              inner.margins = c(.1, .1, .2, .1)) +
+    tm_layout(legend.bg.color = "white", 
+            legend.text.size = .75) + 
+  tm_shape(cluster3torns, 
+         projection = "merc", 
+         is.master = TRUE) +
+    tm_symbols(size = 3, 
+               col = "mag2", 
+               n = 6, 
+               palette = cr, 
+               alpha = 0.8, 
+               border.alpha = 0, 
+               labels = c("0", "1", "2", "3", "4", "5"), 
+               title.col = "EF Rating") +
+    tm_layout(title = "February 5, 2008 \n 85 tornadoes", 
+              title.position = c("center", "top"), 
+              legend.title.size = 1.4,
+              legend.position = c("right", "bottom"), 
+              legend.stack = "horizontal",
+              legend.frame = FALSE, 
+              legend.text.size = 1.2, 
+              legend.width = -0.2, 
+              title.size = 1.5)
+C  
+```
+
+```{r}
+#Extract the big day using the unique ID created. 
+cluster4 <- BigDays.sfdfT %>%
+  filter(ID == 201104274630)
+
+#Generate a convex hull around the big day. 
+cluster4 <- st_convex_hull(cluster4)
+
+#Extract all tornadoes that are in the biggestday 
+cluster4torns <- All_Tornadoes %>%
+  filter(ID == 201104274630) 
+
+cluster4torns$mag <- as.numeric(cluster4torns$mag)
+cluster4torns$mag2 <- cut(cluster4torns$mag, breaks=c(-1, 0, 1, 2, 3, 4, 5))
+```
+
+```{r}
+D <- tm_shape(stateBorders) + 
+  tm_borders(col = "gray70") +
+tm_shape(cluster4) + 
+  tm_borders(col = "gray15", 
+             alpha = 1, 
+             lwd = 2) +
+  tm_scale_bar(color.dark = "gray70", 
+               width = .3, 
+               size = 1, 
+               lwd = 2, 
+               position = c("left","bottom")) +
+    tm_compass(color.dark = "gray70", 
+             size = 5, 
+             lwd = 2, 
+             position = c("left","top")) + 
+    tm_format("World", 
+              attr.position = c("left", "top"),
+              legend.frame = FALSE,
+              inner.margins = c(.15, .1, .2, .1)) +
+    tm_layout(legend.bg.color = "white", 
+            legend.text.size = .75) + 
+  tm_shape(cluster4torns, 
+         projection = "merc", 
+         is.master = TRUE) +
+    tm_symbols(size = 3, 
+               col = "mag2", 
+               n = 6, 
+               palette = cr, 
+               alpha = 0.8, 
+               border.alpha = 0, 
+               labels = c("0", "1", "2", "3", "4", "5"), 
+               title.col = "EF Rating") +
+    tm_layout(title = "April 27, 2011 \n 173 tornadoes", 
+              title.position = c("center", "top"), 
+              legend.title.size = 1.4,
+              legend.position = c("right", "bottom"), 
+              legend.stack = "horizontal",
+              legend.frame = FALSE, 
+              legend.text.size = 1.2, 
+              legend.width = -0.2, 
+              title.size = 1.5)
+  
+D
+```
+
+```{r}
+tmap_arrange(A, B, C, D)
+```
+`Figure 1: ` \label{fig:Clusters}
+
 ## Cluster statistics by time of day
 ```{r}
 BigDays.sfdfT %>%
@@ -69,6 +322,124 @@ a <- ggplot(x, (aes(x = Year, y = avgcas))) +
 
 a + theme(axis.title.y = element_text(colour = "black"), axis.text.y = element_text(color = "black"),  axis.text.x = element_text(angle = 45, hjust = 1), axis.text = element_text(size = 12), axis.title=element_text(size=14))
 ```
+
+*Separate the clusters by week of the year.*
+```{r}
+TornsbyWeek <- BigDays.sfdfT %>% 
+  group_by(week = week(cDate)) %>%
+  summarize(totalclusters = n(),
+            numtorn = sum(nT),
+            avgsize = numtorn / totalclusters,
+            tornrate = mean(TorPerHour), 
+            torndens = mean(TorPerKm), 
+            avgarea = mean(HullArea * (10^-6)), 
+            avgcas = mean(GroupDayCas),
+            avgcasperkm = mean((GroupDayCas/((totalPOP+1)/1000000))))
+```
+
+**For each week sum the number of clusters and divide by the number of years to get the rate lambda. Then take 1-dpois(lambda) * 100 to get the probability**
+
+## Empirical Probability of getting a cluster by week`
+```{r}
+Years <- 2018-1994 + 1
+
+lambdas <- TornsbyWeek$totalclusters / Years
+probs <- (1 - dpois(0, lambdas)) * 100
+
+TornsbyWeek <- cbind(TornsbyWeek, probs)
+```
+
+```{r}
+x.Date <- as.Date(paste(rep(1994:2018, each = 12), rep(1:12, 2), 1, sep = "-"))
+library(zoo)
+x <- zoo(rnorm(24), x.Date)
+times <- time(x)
+ticks <- as.data.frame(x = seq(times[1], times[length(times)], by = "weeks"))
+
+week <- as.data.frame(ticks[1:53,])
+  
+months <- as.data.frame(format(week, "%b"))
+Mo <- as.data.frame(format(week, "%m"))
+day <- as.data.frame(format(week, "%d"))
+
+dat <- as.data.frame(cbind(week, Mo, months, day))
+colnames(dat) <- c("Week", "Mo", "Month", "Day") 
+
+dat <- dat %>%
+  group_by(Month, Day, Mo) %>%
+  summarize(count = n(),
+            Week = paste0(Month, " ", Day))
+
+
+dat <- dat[order(dat$Mo),]
+
+labels = dat$Week
+```
+
+```{r}
+A <- ggplot(TornsbyWeek, (aes(week))) +
+  #geom_smooth(aes(x = week, y = probs/100), span = .5, se = FALSE, color = "gray70", size = 1) +
+  geom_line(aes(y = probs/100), color = "black", lwd = 1) +
+  scale_x_continuous(expand = c(0, 0), breaks = c(seq(1,53,3)), limits = c(1, 53), labels = labels[seq(1, length(labels), 3)]) +
+  scale_y_continuous(limits = c(0, 1)) + 
+#  geom_smooth(aes(x = week, y = probs/100), span = .5, se = FALSE, color = "gray70", size = 1) +
+  theme_bw() +
+  xlab("") +
+  ylab("Probability of a cluster\n ")
+
+A <- A + theme(panel.grid = element_blank(), axis.title.y = element_text(colour = "black"), axis.text.y = element_text(color = "black"),  axis.text.x = element_text(angle = 45, hjust = 1), axis.text = element_text(size = 12), axis.title=element_text(size=14)) + ggtitle("A")
+```
+
+```{r}
+B <- ggplot(TornsbyWeek, (aes(week))) +
+  #geom_smooth(aes(x = week, y = avgsize), span = .5, se = FALSE, color = "gray70", size = 1) +
+  geom_line(aes(y = avgsize), color = "black", lwd = 1) +
+  scale_x_continuous(expand = c(0, 0), breaks = c(seq(1,53,3)), limits = c(1, 53), labels = labels[seq(1, length(labels), 3)]) +
+  scale_y_continuous(breaks = c(seq(0,50,10)), limits = c(0, 50)) + 
+  theme_bw() +
+  xlab("") +
+  ylab("Number of tornadoes\n ")
+
+B <- B + theme(panel.grid = element_blank(), axis.title.y = element_text(colour = "black"), axis.text.y = element_text(color = "black"),  axis.text.x = element_text(angle = 45, hjust = 1), axis.text = element_text(size = 12), axis.title=element_text(size=14)) + ggtitle("B")
+```
+
+```{r}
+C <- ggplot(TornsbyWeek, (aes(week))) +
+  #geom_smooth(aes(x = week, y = as.numeric(avgcasperkm)), span = .5, se = FALSE, color = "gray70", size = 1) +
+  geom_line(aes(y = as.numeric(avgcasperkm)), color = "black", lwd = 1) +
+  scale_x_continuous(expand = c(0, 0), breaks = c(seq(1,53,3)), limits = c(1, 53), labels = labels[seq(1, length(labels), 3)]) +
+  #scale_y_continuous(breaks = c(seq(0,150,25)), limits = c(0, 150)) + 
+  theme_bw() +
+  xlab("") +
+  ylab("Number of casualties\n")
+
+C <- C + theme(panel.grid = element_blank(), axis.title.y = element_text(colour = "black"), axis.text.y = element_text(color = "black"),  axis.text.x = element_text(angle = 45, hjust = 1), axis.text = element_text(size = 12), axis.title=element_text(size=14)) + ggtitle("C")
+C
+```
+
+## Combine into one figure
+```{r}
+ggarrange(A, B, C, ncol = 1)
+```
+
+## Get the maximum, minimum, and average of the environmental variables. Create a table displaying this information.
+```{r}
+maximum <- as.matrix(c(max(BigDays.sfdfT$maxCAPE), max(BigDays.sfdfT$maxVSTM), max(BigDays.sfdfT$maxBS_deep), max(BigDays.sfdfT$maxBS_shallow), max(BigDays.sfdfT$maxHLCY), (max(BigDays.sfdfT$HullArea)*1e-6), max(BigDays.sfdfT$minCIN), max(BigDays.sfdfT$maxUSTM)), ncol = 1)
+
+minimum <- as.matrix(c(min(BigDays.sfdfT$maxCAPE), min(BigDays.sfdfT$maxVSTM), min(BigDays.sfdfT$maxBS_deep), min(BigDays.sfdfT$maxBS_shallow), min(BigDays.sfdfT$maxHLCY), (min(BigDays.sfdfT$HullArea)*1e-6), min(BigDays.sfdfT$minCIN), min(BigDays.sfdfT$maxUSTM)), ncol = 1)
+
+average <- as.matrix(c(mean(BigDays.sfdfT$maxCAPE), mean(BigDays.sfdfT$maxVSTM), mean(BigDays.sfdfT$maxBS_deep), mean(BigDays.sfdfT$maxBS_shallow), mean(BigDays.sfdfT$maxHLCY), (mean(BigDays.sfdfT$HullArea)*1e-6), mean(BigDays.sfdfT$minCIN), mean(BigDays.sfdfT$maxUSTM)), ncol = 1)
+
+Variable <- as.matrix(c("Convective Available Potential Energy", "Northward Storm Motion", "Deep-Layer Bulk Shear", "Shallow-Layer Bulk Shear", "Helicity", "Outbreak Area", "CIN", "Eastward Storm Motion"), ncol = 1)
+
+abbr <- as.matrix(c("CAPE", "VSTM", "DLBS","SLBS", "HLCY", "AREA", "CIN", "USTM"), ncol = 1)
+
+env_variation <- cbind(Variable, abbr, maximum, minimum, average)
+colnames(env_variation) <- c("Variable Name", "Abbreviation", "Maximum", "Minimum", "Average")
+
+xtable(as.data.frame((env_variation))) #round to sig fig
+```
+`Table 2: The range and average highest (lowest for CIN) value of the environmental variables across the 767 tornado clusters used in the study.` \label{tab:VarValues}
 
 ## Tornado count model
 
