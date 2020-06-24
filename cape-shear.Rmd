@@ -26,8 +26,19 @@ BigDays.sfdfT <- BigDays.sfdfT %>%
          CIN = minCIN/100,
          DLBS = maxBS_deep/10,
          SLBS = maxBS_shallow/10,
-         P = totalPOP/100000)
+         P = totalPOP/100000, 
+         M = maxMR/10)
 dim(BigDays.sfdfT)
+```
+
+## Cluster statistics by time of day
+```{r}
+BigDays.sfdfT %>%
+  group_by(NARRZtime) %>%
+  summarize(clusnum = n(), 
+            numtorn = sum(nT),
+            tornperclus = numtorn/clusnum,
+            avgdur = mean(Duration)/3600)
 ```
 
 ## Distribution of casualties
@@ -38,6 +49,25 @@ BigDays.sfdfT %>%
   summarize(nC = n(),
             pC = nC/nrow(BigDays.sfdfT)) %>%
   arrange(desc(nC))
+```
+
+## How are casualties changing annually?
+```{r}
+x <- BigDays.sfdfT %>%
+  group_by(Year) %>%
+  summarize(totclus = n(), 
+            avgcas = (mean(GroupDayCas)/totclus),
+            totcas = (sum(GroupDayCas)/totclus))
+
+a <- ggplot(x, (aes(x = Year, y = avgcas))) +
+  geom_line(color = "black", lwd = 1) +
+  geom_smooth(method = lm) +
+  scale_x_continuous(expand = c(0, 0), breaks = c(seq(1994,2018,1))) +
+  theme_bw() +
+  xlab("Year") +
+  ylab("Average Casualties per Cluster\n ") 
+
+a + theme(axis.title.y = element_text(colour = "black"), axis.text.y = element_text(color = "black"),  axis.text.x = element_text(angle = 45, hjust = 1), axis.text = element_text(size = 12), axis.title=element_text(size=14))
 ```
 
 ## Tornado count model
@@ -119,7 +149,7 @@ ggplot(df, aes(x = Observed +.54, y = Predicted)) +
 ## Cross validation
 ```{r}
 formulaT <- nT ~ A + CAPE + DLBS + SLBS
-formulaC <- GroupDayCas ~ P + Lat + Lon + Year + CAPE + DLBS + SLBS + nT
+formulaC <- GroupDayCas ~ P + Lat + Lon + Year + CAPE + DLBS + SLBS #+ nT
 modelFinalT <- glm.nb(formulaT, data = BigDays.sfdfT)
 modelFinalC <- glm.nb(formulaC, data = BigDays.sfdfT)
 
