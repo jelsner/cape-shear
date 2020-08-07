@@ -62,9 +62,107 @@ BigDays.sfdfT <- BigDays.sfdfT %>%
          CAPE = maxCAPE/1000,
          CIN = minCIN/100,
          DLBS = maxBS_deep/10,
-         SLBS = maxBS_shallow/10)
+         SLBS = maxBS_shallow/10,
+         HLCY = maxHLCY/10,
+         CAPE_avg = avgCAPE/1000,
+         CIN_avg = avgCIN/100,
+         DLBS_avg = avgBS_deep/10,
+         SLBS_avg = avgBS_shallow/10,
+         HLCY_avg = avgHLCY/10)
 dim(BigDays.sfdfT)
 ```
+
+Look at the distribution of CAPE, CIN, DLBS, SLBS, SRH
+```{r}
+( A <- ggplot(BigDays.sfdfT, (aes(maxCAPE))) +
+  #geom_smooth(aes(x = week, y = probs/100), span = .5, se = FALSE, color = "gray70", size = 1) +
+  geom_freqpoly((aes(maxCAPE, color = "Maximum CAPE")), lwd = 1, show.legend = TRUE) +
+  geom_freqpoly((aes(avgCAPE, color = "Average CAPE")), lwd = 1, show.legend = TRUE) +
+  xlab("CAPE Distribution") +
+  ylab("") +
+  scale_x_continuous(expand = c(0, 0), limits = c(-500, 7000),breaks = c(-500, 0, 1000, 2000, 3000, 4000, 5000, 6000, 7000),labels = c("","0", "1000", "2000", "3000", "4000", "5000", "6000", "7000")) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 125), breaks = c(0, 25, 50, 75, 100, 125),labels = c("0", "25", "50", "75", "100", "125")) +
+  theme_bw() )
+
+A <- update_labels(A, list(colour=""))
+
+A <- A + theme(legend.position = c(0.8, 0.8),
+          legend.box = "vertical")
+```
+
+```{r}
+( B <- ggplot(BigDays.sfdfT, (aes(maxBS_shallow))) +
+  #geom_smooth(aes(x = week, y = probs/100), span = .5, se = FALSE, color = "gray70", size = 1) +
+  geom_freqpoly((aes(maxBS_shallow, color = "Maximum SLBS")), lwd = 1, show.legend = TRUE) +
+  geom_freqpoly((aes(avgBS_shallow, color = "Average SLBS")), lwd = 1, show.legend = TRUE) +
+  xlab("Shallow-Layer Bulk Shear Distribution") +
+  ylab("") +
+  scale_x_continuous(expand = c(0, 0), breaks = c(0, 5, 10, 15, 20, 25, 30, 35),labels = c("0", "5", "10", "15", "20", "25", "30", "35")) +
+  scale_y_continuous(expand = c(0, 0),  limits = c(0, 100), breaks = c(0, 25, 50, 75, 100),labels = c("0", "25", "50", "75", "100")) +
+  theme_bw() )
+
+B <- update_labels(B, list(colour=""))
+
+B <- B + theme(legend.position = c(0.8, 0.8),
+          legend.box = "vertical")
+```
+
+```{r}
+( C <- ggplot(BigDays.sfdfT, (aes(maxBS_deep))) +
+  #geom_smooth(aes(x = week, y = probs/100), span = .5, se = FALSE, color = "gray70", size = 1) +
+  geom_freqpoly((aes(maxBS_deep, color = "Maximum DLBS")), lwd = 1, show.legend = TRUE) +
+  geom_freqpoly((aes(avgBS_deep, color = "Average DLBS")), lwd = 1, show.legend = TRUE) +
+  xlab("Deep-Layer Bulk Shear Distribution") +
+  ylab("") +
+  scale_x_continuous(expand = c(0, 0), breaks = c(0, 10, 20, 30, 40, 50),labels = c("0", "10", "20", "30", "40", "50")) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 100), breaks = c(0, 25, 50, 75, 100),labels = c("0", "25", "50", "75", "100")) +
+  theme_bw() )
+
+C <- update_labels(C, list(colour=""))
+
+C <- C + theme(legend.position = c(0.8, 0.8),
+          legend.box = "vertical")
+```
+
+```{r}
+( D <- ggplot(BigDays.sfdfT, (aes(maxHLCY))) +
+  #geom_smooth(aes(x = week, y = probs/100), span = .5, se = FALSE, color = "gray70", size = 1) +
+  geom_freqpoly((aes(maxHLCY, color = "Maximum HLCY")), lwd = 1, show.legend = TRUE) +
+  geom_freqpoly((aes(avgBS_deep, color = "Average HLCY")), lwd = 1, show.legend = TRUE) +
+  xlab("Storm Relative Helicity Distribution") +
+  ylab("") +
+  scale_x_continuous(expand = c(0, 0), limits = c(-100,900), breaks = c(0, 100, 200, 300, 400, 500, 600, 700, 800, 900),labels = c("0", "100", "200", "300", "400", "500", "600", "700", "800", "900")) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 600), breaks = c(0, 100, 200, 300, 400, 500, 600),labels = c("0", "100", "200", "300", "400", "500", "600")) +
+  theme_bw() )
+
+D <- update_labels(D, list(colour=""))
+
+D <- D + theme(legend.position = c(0.8, 0.8),
+          legend.box = "vertical")
+```
+
+```{r}
+( E <- ggplot(BigDays.sfdfT, (aes(minCIN))) +
+  #geom_smooth(aes(x = week, y = probs/100), span = .5, se = FALSE, color = "gray70", size = 1) +
+  geom_freqpoly((aes(minCIN, color = "Minimum CIN")), lwd = 1, show.legend = TRUE) +
+  geom_freqpoly((aes(avgCIN, color = "Average CIN")), lwd = 1, show.legend = TRUE) +
+  xlab("Convective Inhibition Distribution") +
+  ylab("") +
+  scale_x_continuous(expand = c(0, 0), limits = c(-700,50), breaks = c(-700, -600, -500, -400, -300, -200, -100, 0), labels = c("-700", "-600", "-500", "-400", "-300", "-200", "-100", "0")) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 350), breaks = c(0, 50, 100, 150, 200, 250, 300, 350), labels = c("0", "50", "100", "150", "200", "250", "300", "350")) +
+  theme_bw() )
+
+E <- update_labels(E, list(colour=""))
+
+E <- E + theme(legend.position = c(0.2, 0.8),
+          legend.box = "vertical")
+```
+
+```{r}
+ggarrange(A, B, C, D, E)
+ggarrange(A, B, C, ncol = 1)
+```
+
 
 ```{r}
 #Extract the big day using the unique ID created.
@@ -497,14 +595,14 @@ xtable(cor(dat))
 
 ## Tornado count model
 
-Consider only CAPE, CIN, BS (deep & shallow)
+Consider only CAPE, CIN, BS (deep & shallow) for the scaled maximum values of the variables.
 ```{r}
 library(MASS)
 
-modelInitial <- glm.nb(nT ~ A + Lat + Lon + Year + CAPE + CIN + DLBS + SLBS, data = BigDays.sfdfT)
+modelInitial <- glm.nb(nT ~ A + Lat + Lon + Year + CAPE + CIN + DLBS + SLBS + HLCY, data = BigDays.sfdfT)
 summary(modelInitial)
 
-modelInitialPoisson <- glm(nT ~ A + Lat + Lon + CAPE + CIN + DLBS + SLBS, family = "poisson", data = BigDays.sfdfT)
+modelInitialPoisson <- glm(nT ~ A + Lat + Lon + CAPE + CIN + DLBS + SLBS + SRH, family = "poisson", data = BigDays.sfdfT)
 summary(modelInitialPoisson)
 
 modelFinal <- glm.nb(nT ~ A + CAPE + DLBS + SLBS, data = BigDays.sfdfT)
@@ -521,6 +619,47 @@ mean(abs(BigDays.sfdfT$nT - predict(modelFinal, type = "response")))/(max(BigDay
 mean(abs(BigDays.sfdfT$nT - predict(modelFinal, type = "response")))/(max(predict(modelFinal, type = "response")) - min(predict(modelFinal, type = "response")))
 
 modelglmer.nb <- glmer.nb(nT ~ scale(A) + scale(CAPE) + scale(DLBS) + scale(SLBS) + (1|Month), data = BigDays.sfdfT)
+summary(modelglmer.nb) # mixed effects model does not improve things
+```
+
+## Observed versus predicted plot
+```{r}
+df <- data.frame(Observed = BigDays.sfdfT$nT,
+                 Predicted = predict(modelFinal, type = "response"))
+
+ggplot(df, aes(x = Observed, y = Predicted)) +
+  geom_abline() +
+  geom_point(col = "gray70") +
+  geom_smooth(method = lm, size = 1, col = "black") +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_minimal() 
+```
+
+Consider only CAPE, CIN, BS (deep & shallow) for the scaled average values of the variables.
+```{r}
+library(MASS)
+
+modelInitial <- glm.nb(nT ~ A + Lat + Lon + Year + CAPE_avg + CIN_avg + DLBS_avg + SLBS_avg + HLCY_avg, data = BigDays.sfdfT)
+summary(modelInitial)
+
+modelInitialPoisson <- glm(nT ~ A + Lat + Lon + CAPE_avg + CIN_avg + DLBS_avg + SLBS_avg, family = "poisson", data = BigDays.sfdfT)
+summary(modelInitialPoisson)
+
+modelFinal <- glm.nb(nT ~ A + CAPE_avg + DLBS_avg + SLBS_avg, data = BigDays.sfdfT)
+summary(modelFinal)
+
+(exp(coef(modelFinal)) - 1) * 100
+
+hist(resid(modelFinal))
+range(exp(predict(modelFinal)))
+plot(log(BigDays.sfdfT$nT), predict(modelFinal))
+cor.test(BigDays.sfdfT$nT, predict(modelFinal, type = "response"))
+mean(abs(BigDays.sfdfT$nT - predict(modelFinal, type = "response")))
+mean(abs(BigDays.sfdfT$nT - predict(modelFinal, type = "response")))/(max(BigDays.sfdfT$nT) - min(BigDays.sfdfT$nT))
+mean(abs(BigDays.sfdfT$nT - predict(modelFinal, type = "response")))/(max(predict(modelFinal, type = "response")) - min(predict(modelFinal, type = "response")))
+
+modelglmer.nb <- glmer.nb(nT ~ scale(A) + scale(CAPE_avg) + scale(DLBS_avg) + scale(SLBS_avg) + (1|Month), data = BigDays.sfdfT)
 summary(modelglmer.nb) # mixed effects model does not improve things
 ```
 
