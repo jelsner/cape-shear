@@ -59,10 +59,12 @@ All_Tornadoes<- All_Tornadoes %>%
 ```{r}
 BigDays.sfdfT <- BigDays.sfdfT %>%
   mutate(A = as.numeric(HullArea)/10^10,
-         CAPE = maxCAPE/1000,
+         CAPE = avgCAPE/1000,
          CIN = minCIN/100,
-         DLBS = maxBS_deep/10,
-         SLBS = maxBS_shallow/10)
+         DLBS = avgBS_deep/10,
+         SLBS = avgBS_shallow/10,
+         SRH = maxHLCY/10,
+         LCL =maxLCL/1000)
 dim(BigDays.sfdfT)
 ```
 
@@ -501,13 +503,13 @@ Consider only CAPE, CIN, BS (deep & shallow)
 ```{r}
 library(MASS)
 
-modelInitial <- glm.nb(nT ~ A + Lat + Lon + Year + CAPE + CIN + DLBS + SLBS, data = BigDays.sfdfT)
+modelInitial <- glm.nb(nT ~ A + Lat + Lon + Year + CAPE + CIN + DLBS + SLBS +SRH + LCL, data = BigDays.sfdfT)
 summary(modelInitial)
 
 modelInitialPoisson <- glm(nT ~ A + Lat + Lon + CAPE + CIN + DLBS + SLBS, family = "poisson", data = BigDays.sfdfT)
 summary(modelInitialPoisson)
 
-modelFinal <- glm.nb(nT ~ A + CAPE + DLBS + SLBS, data = BigDays.sfdfT)
+modelFinal <- glm.nb(nT ~ A + CAPE  + DLBS + SLBS , data = BigDays.sfdfT)
 summary(modelFinal)
 
 (exp(coef(modelFinal)) - 1) * 100
