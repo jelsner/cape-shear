@@ -30,7 +30,14 @@ BigDays.sfdfT <- BigDays.sfdfT %>%
          DLBS = maxBS_deep/10,
          SLBS = maxBS_shallow/10,
          P = totalPOP/100000, 
-         M = maxMR/10)
+         M = maxMR/10, 
+         HLCY = maxHLCY/10,
+         LCL =maxLCL/1000,
+         CAPE_avg = avgCAPE/1000,
+         CIN_avg = avgCIN/100,
+         DLBS_avg = avgBS_deep/10,
+         SLBS_avg = avgBS_shallow/10,
+         HLCY_avg = avgHLCY/10)
 dim(BigDays.sfdfT)
 ```
 
@@ -54,29 +61,6 @@ cr <- cr[-c(1:3)]
 ```{r}
 All_Tornadoes<- All_Tornadoes %>%
    mutate(ID = paste0(gsub("-", "", cDate), groupNumber))
-```
-
-```{r}
-BigDays.sfdfT <- BigDays.sfdfT %>%
-  mutate(A = as.numeric(HullArea)/10^10,
-         CAPE = avgCAPE/1000,
-         CIN = minCIN/100,
-<<<<<<< HEAD
-         DLBS = avgBS_deep/10,
-         SLBS = avgBS_shallow/10,
-         SRH = maxHLCY/10,
-         LCL =maxLCL/1000)
-=======
-         DLBS = maxBS_deep/10,
-         SLBS = maxBS_shallow/10,
-         HLCY = maxHLCY/10,
-         CAPE_avg = avgCAPE/1000,
-         CIN_avg = avgCIN/100,
-         DLBS_avg = avgBS_deep/10,
-         SLBS_avg = avgBS_shallow/10,
-         HLCY_avg = avgHLCY/10)
->>>>>>> 29ebf6d5c3ab0fed038545b30999cd34538ad6bb
-dim(BigDays.sfdfT)
 ```
 
 Look at the distribution of CAPE, CIN, DLBS, SLBS, SRH
@@ -170,6 +154,15 @@ ggarrange(A, B, C, D, E)
 ggarrange(A, B, C, ncol = 1)
 ```
 
+```{r}
+merc = "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+
+All_Tornadoes <- All_Tornadoes %>%
+ mutate(ID = paste0(gsub("-", "", cDate), groupNumber))
+
+BigDayTornadoes <- BigDayTornadoes %>%
+  mutate(ID = paste0(gsub("-", "", cDate), groupNumber))
+```
 
 ```{r}
 #Extract the big day using the unique ID created.
@@ -180,6 +173,7 @@ cluster1 <- BigDays.sfdfT %>%
 cluster1 <- st_convex_hull(cluster1)
 
 #Extract all tornadoes that are in the Day 1
+
 cluster1torns <- All_Tornadoes %>%
   filter(ID == 19940719217)
 
@@ -210,7 +204,7 @@ tm_shape(cluster1) +
     tm_layout(legend.bg.color = "white", 
             legend.text.size = .75) + 
   tm_shape(cluster1torns, 
-         projection = "merc", 
+         projection = merc, 
          is.master = TRUE) +
     tm_symbols(size = 3, 
                col = "mag2", 
@@ -238,7 +232,7 @@ cluster2 <- BigDays.sfdfT %>%
 
 cluster2 <- st_convex_hull(cluster2)
 
-cluster2torns <- All_Tornadoes %>%
+cluster2torns <- BigDayTornadoes %>%
   filter(ID == 199906061644) 
 
 cluster2 %>%
@@ -272,7 +266,7 @@ tm_shape(cluster2) +
     tm_layout(legend.bg.color = "white", 
             legend.text.size = .75) + 
   tm_shape(cluster2torns, 
-         projection = "merc", 
+         projection = merc, 
          is.master = TRUE) +
     tm_symbols(size = 3, 
                col = "mag2", 
@@ -300,7 +294,7 @@ cluster3 <- BigDays.sfdfT %>%
 
 cluster3 <- st_convex_hull(cluster3)
 
-cluster3torns <- All_Tornadoes %>%
+cluster3torns <- BigDayTornadoes %>%
   filter(ID == 200802053876) 
 
 cluster3 %>%
@@ -334,7 +328,7 @@ tm_shape(cluster3) +
     tm_layout(legend.bg.color = "white", 
             legend.text.size = .75) + 
   tm_shape(cluster3torns, 
-         projection = "merc", 
+         projection = merc, 
          is.master = TRUE) +
     tm_symbols(size = 3, 
                col = "mag2", 
@@ -365,7 +359,7 @@ cluster4 <- BigDays.sfdfT %>%
 cluster4 <- st_convex_hull(cluster4)
 
 #Extract all tornadoes that are in the biggestday 
-cluster4torns <- All_Tornadoes %>%
+cluster4torns <- BigDayTornadoes %>%
   filter(ID == 201104274630) 
 
 cluster4torns$mag <- as.numeric(cluster4torns$mag)
@@ -375,7 +369,7 @@ cluster4torns$mag2 <- cut(cluster4torns$mag, breaks=c(-1, 0, 1, 2, 3, 4, 5))
 ```{r}
 D <- tm_shape(stateBorders) + 
   tm_borders(col = "gray70") +
-tm_shape(cluster4) + 
+tm_shape(cluster4,projection = merc) + 
   tm_borders(col = "gray15", 
              alpha = 1, 
              lwd = 2) +
@@ -395,7 +389,7 @@ tm_shape(cluster4) +
     tm_layout(legend.bg.color = "white", 
             legend.text.size = .75) + 
   tm_shape(cluster4torns, 
-         projection = "merc", 
+         projection = merc, 
          is.master = TRUE) +
     tm_symbols(size = 3, 
                col = "mag2", 
@@ -607,13 +601,13 @@ Consider only CAPE, CIN, BS (deep & shallow) for the scaled maximum values of th
 library(MASS)
 
 
-modelInitial <- glm.nb(nT ~ A + Lat + Lon + Year + CAPE + CIN + DLBS + SLBS +SRH + LCL, data = BigDays.sfdfT)
+modelInitial <- glm.nb(nT ~ A + Lat + Lon + Year + CAPE + CIN + DLBS + SLBS + HLCY + LCL, data = BigDays.sfdfT)
 
 modelInitial <- glm.nb(nT ~ A + Lat + Lon + Year + CAPE + CIN + DLBS + SLBS + HLCY, data = BigDays.sfdfT)
 
 summary(modelInitial)
 
-modelInitialPoisson <- glm(nT ~ A + Lat + Lon + CAPE + CIN + DLBS + SLBS + SRH, family = "poisson", data = BigDays.sfdfT)
+modelInitialPoisson <- glm(nT ~ A + Lat + Lon + CAPE + CIN + DLBS + SLBS + HLCY, family = "poisson", data = BigDays.sfdfT)
 summary(modelInitialPoisson)
 
 modelFinal <- glm.nb(nT ~ A + CAPE  + DLBS + SLBS , data = BigDays.sfdfT)
@@ -762,7 +756,7 @@ df <- data.frame(Observed = BigDays.sfdfT$GroupDayCas,
 ```{r}
 theta <- 6.246
 nTthresh <- 20
-predict(modelFinal, newdata = data.frame(A = c(mean(BigDays.sfdfT$A), mean(BigDays.sfdfT$A)),
+predict(modelFinalT, newdata = data.frame(A = c(mean(BigDays.sfdfT$A), mean(BigDays.sfdfT$A)),
                                          CAPE = c(0, 5),
                                          DLBS = c(mean(BigDays.sfdfT$DLBS), mean(BigDays.sfdfT$DLBS)),
                                          SLBS = c(mean(BigDays.sfdfT$SLBS), mean(BigDays.sfdfT$SLBS))),
@@ -771,7 +765,7 @@ predict(modelFinal, newdata = data.frame(A = c(mean(BigDays.sfdfT$A), mean(BigDa
 1 - pnbinom(nTthresh, size = theta, mu = 18.725) # chance that the outbreak will have more than 50 tornadoes when CAPE = 0
 1 - pnbinom(nTthresh, size = theta, mu = 23.55)  # chance that the outbreak will have more than 50 tornadoes when CAPE = 5000
 
-predictions  <- predict(modelFinal, 
+predictions  <- predict(modelFinalT, 
                         newdata = data.frame(A = rep(mean(BigDays.sfdfT$A), times = 6),
                                              CAPE = 0:5,
                                              DLBS = rep(mean(BigDays.sfdfT$DLBS), times = 6),
@@ -786,7 +780,7 @@ theta <- 6.246
 nTthresh <- 30
 Area <- 40 # Area of 10\% tor probability April 12, 2020 outbreak 12UTC
 
-predictions  <- predict(modelFinal, 
+predictions  <- predict(modelFinalT, 
                         newdata = data.frame(A = Area,
                                              CAPE = CAPElevels[1]/1000,
                                              DLBS = seq(1, 4, by = .25),
@@ -799,7 +793,7 @@ plot.predictions <- data.frame(CAPE = CAPElevels[1],
                                probabilityL = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit - 1 * predictions$se.fit),
                                DLBS = seq(1, 4, by = .25) * 10)
 
-predictions  <- predict(modelFinal, 
+predictions  <- predict(modelFinalT, 
                         newdata = data.frame(A = Area,
                                              CAPE = CAPElevels[2]/1000,
                                              DLBS = seq(1, 4, by = .25),
@@ -813,7 +807,7 @@ plot.predictions2 <- data.frame(CAPE = CAPElevels[2],
                                probabilityL = 1 - pnbinom(nTthresh, size = theta, mu = predictions$fit - 1 * predictions$se.fit),
                                DLBS = seq(1, 4, by = .25) * 10)
 
-predictions  <- predict(modelFinal, 
+predictions  <- predict(modelFinalT, 
                         newdata = data.frame(A = Area,
                                              CAPE = CAPElevels[3]/1000,
                                              DLBS = seq(1, 4, by = .25),
@@ -854,7 +848,7 @@ pgrid <- expand.grid(CAPE = seq(1, 5, .05),
                      A = Area,
                      SLBS = mean(BigDays.sfdfT$SLBS))
 
-predictions <- predict.glm(modelFinal, newdata = pgrid, type = "response")
+predictions <- predict.glm(modelFinalT, newdata = pgrid, type = "response")
 pgrid$probability <-1 - pnbinom(nTthresh, size = theta, mu = predictions)
 
 ( p <- ggplot(pgrid, aes(x = CAPE * 1000, y = DLBS * 10, fill = probability)) +
