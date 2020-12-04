@@ -862,6 +862,7 @@ pgrid$probability <-1 - pnbinom(nTthresh, size = theta, mu = predictions)
 direct.label(p, list("angled.boxes"))
 ```
 
+##Model Residual 
 Rank the residuals: 
 ```{r}
 #Model Underpredicts
@@ -877,6 +878,8 @@ resid(modelFinalT)[149]
 resid(modelFinalT)[279]
 ```
 
+
+Create a graph of the 2 most overpredicted clusters by the model. 
 ```{r}
 #Extract the big day using the unique ID created. 
 clusover1 <- BigDays.sfdfT [149,]
@@ -1005,6 +1008,7 @@ tm_shape(clusover2,projection = merc) +
 Over2
 ```
 
+Create a graph of the 2 most underpredicted clusters by the model. 
 ```{r}
 #Extract the big day using the unique ID created. 
 clusunder1 <- BigDays.sfdfT [556,]
@@ -1138,7 +1142,7 @@ Under2
 tmap_arrange(Over1, Over2, Under1, Under2)
 ```
 
-Residual for April 27, 2011 and June 6, 1999
+Compare the residuals for April 27, 2011 and June 6, 1999 to the average residuals from the model. 
 ```{r}
 mean(resid(modelFinalT))
 
@@ -1153,13 +1157,6 @@ resid(modelFinalT)[550]
 which(BigDays.sfdfT$ID == 199906061644)
 resid(modelFinalT)[168]
 ```
-
-
-
-
-
-
-
 
 ## Casualty predictions 1-D
 
