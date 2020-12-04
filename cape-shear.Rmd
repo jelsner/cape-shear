@@ -862,6 +862,305 @@ pgrid$probability <-1 - pnbinom(nTthresh, size = theta, mu = predictions)
 direct.label(p, list("angled.boxes"))
 ```
 
+Rank the residuals: 
+```{r}
+#Model Underpredicts
+head(sort(resid(modelFinalT)))
+#row 556 and 381
+resid(modelFinalT)[556]
+resid(modelFinalT)[381]
+
+#Model Overpredicts
+tail(sort(resid(modelFinalT)))
+#row 149 and 279
+resid(modelFinalT)[149]
+resid(modelFinalT)[279]
+```
+
+```{r}
+#Extract the big day using the unique ID created. 
+clusover1 <- BigDays.sfdfT [149,]
+
+#Generate a convex hull around the big day. 
+clusover1 <- st_convex_hull(clusover1)
+
+clusover1$nT
+
+#Extract all tornadoes that are in the biggestday 
+clusover1torns <- BigDayTornadoes %>%
+  filter(ID == 199901211532) 
+
+
+clusover1torns$mag <- as.numeric(clusover1torns$mag)
+clusover1torns$mag2 <- cut(clusover1torns$mag, breaks=c(-1, 0, 1, 2, 3, 4, 5))
+```
+
+```{r}
+Over1 <- tm_shape(stateBorders) + 
+  tm_borders(col = "gray70") +
+tm_shape(clusover1,projection = merc) + 
+  tm_borders(col = "gray15", 
+             alpha = 1, 
+             lwd = 2) +
+  tm_scale_bar(color.dark = "gray70", 
+               width = .3, 
+               size = 1, 
+               lwd = 2, 
+               position = c("left","bottom")) +
+    tm_compass(color.dark = "gray70", 
+             size = 5, 
+             lwd = 2, 
+             position = c("left","top")) + 
+    tm_format("World", 
+              attr.position = c("left", "top"),
+              legend.frame = FALSE,
+              inner.margins = c(.15, .1, .2, .1)) +
+    tm_layout(legend.bg.color = "white", 
+            legend.text.size = .75) + 
+  tm_shape(clusover1torns, 
+         projection = merc, 
+         is.master = TRUE) +
+    tm_symbols(size = 3, 
+               col = "mag2", 
+               n = 6, 
+               palette = cr, 
+               alpha = 0.8, 
+               border.alpha = 0, 
+               labels = c("0", "1", "2", "3", "4", "5"), 
+               title.col = "EF Rating") +
+    tm_layout(title = "January 21, 1999  (Overpredict) \n 99 tornadoes", 
+              title.position = c("center", "top"), 
+              legend.title.size = 1.4,
+              legend.position = c("right", "bottom"), 
+              legend.stack = "horizontal",
+              legend.frame = FALSE, 
+              legend.text.size = 1.2, 
+              legend.width = -0.2, 
+              title.size = 1.5)
+  
+Over1
+```
+
+```{r}
+#Extract the big day using the unique ID created. 
+clusover2 <- BigDays.sfdfT [279,]
+
+#Generate a convex hull around the big day. 
+clusover2 <- st_convex_hull(clusover2)
+
+clusover2$nT
+clusover2$ID
+#Extract all tornadoes that are in the biggestday 
+clusover2torns <- BigDayTornadoes %>%
+  filter(ID == 200306242694) 
+
+
+clusover2torns$mag <- as.numeric(clusover2torns$mag)
+clusover2torns$mag2 <- cut(clusover2torns$mag, breaks=c(-1, 0, 1, 2, 3, 4, 5))
+```
+
+```{r}
+Over2 <- tm_shape(stateBorders) + 
+  tm_borders(col = "gray70") +
+tm_shape(clusover2,projection = merc) + 
+  tm_borders(col = "gray15", 
+             alpha = 1, 
+             lwd = 2) +
+  tm_scale_bar(color.dark = "gray70", 
+               width = .3, 
+               size = 1, 
+               lwd = 2, 
+               position = c("left","bottom")) +
+    tm_compass(color.dark = "gray70", 
+             size = 5, 
+             lwd = 2, 
+             position = c("left","top")) + 
+    tm_format("World", 
+              attr.position = c("left", "top"),
+              legend.frame = FALSE,
+              inner.margins = c(.15, .1, .2, .1)) +
+    tm_layout(legend.bg.color = "white", 
+            legend.text.size = .75) + 
+  tm_shape(clusover2torns, 
+         projection = merc, 
+         is.master = TRUE) +
+    tm_symbols(size = 3, 
+               col = "mag2", 
+               n = 6, 
+               palette = cr, 
+               alpha = 0.8, 
+               border.alpha = 0, 
+               labels = c("0", "1", "2", "3", "4", "5"), 
+               title.col = "EF Rating") +
+    tm_layout(title = "June 24, 2003  (Overpredict) \n 94 tornadoes", 
+              title.position = c("center", "top"), 
+              legend.title.size = 1.4,
+              legend.position = c("right", "bottom"), 
+              legend.stack = "horizontal",
+              legend.frame = FALSE, 
+              legend.text.size = 1.2, 
+              legend.width = -0.2, 
+              title.size = 1.5)
+  
+Over2
+```
+
+```{r}
+#Extract the big day using the unique ID created. 
+clusunder1 <- BigDays.sfdfT [556,]
+
+#Generate a convex hull around the big day. 
+clusunder1 <- st_convex_hull(clusunder1)
+
+clusunder1$nT
+clusunder1$ID
+
+#Extract all tornadoes that are in the biggestday 
+clusunder1torns <- BigDayTornadoes %>%
+  filter(ID == 201105234655) 
+
+
+clusunder1torns$mag <- as.numeric(clusunder1torns$mag)
+clusunder1torns$mag2 <- cut(clusunder1torns$mag, breaks=c(-1, 0, 1, 2, 3, 4, 5))
+```
+
+```{r}
+Under1 <- tm_shape(stateBorders) + 
+  tm_borders(col = "gray70") +
+tm_shape(clusunder1,projection = merc) + 
+  tm_borders(col = "gray15", 
+             alpha = 1, 
+             lwd = 2) +
+  tm_scale_bar(color.dark = "gray70", 
+               width = .3, 
+               size = 1, 
+               lwd = 2, 
+               position = c("left","bottom")) +
+    tm_compass(color.dark = "gray70", 
+             size = 5, 
+             lwd = 2, 
+             position = c("left","top")) + 
+    tm_format("World", 
+              attr.position = c("left", "top"),
+              legend.frame = FALSE,
+              inner.margins = c(.15, .1, .2, .1)) +
+    tm_layout(legend.bg.color = "white", 
+            legend.text.size = .75) + 
+  tm_shape(clusunder1torns, 
+         projection = merc, 
+         is.master = TRUE) +
+    tm_symbols(size = 3, 
+               col = "mag2", 
+               n = 6, 
+               palette = cr, 
+               alpha = 0.8, 
+               border.alpha = 0, 
+               labels = c("0", "1", "2", "3", "4", "5"), 
+               title.col = "EF Rating") +
+    tm_layout(title = "May 23, 2011  (Underpredict) \n 17 tornadoes", 
+              title.position = c("center", "top"), 
+              legend.title.size = 1.4,
+              legend.position = c("right", "bottom"), 
+              legend.stack = "horizontal",
+              legend.frame = FALSE, 
+              legend.text.size = 1.2, 
+              legend.width = -0.2, 
+              title.size = 1.5)
+  
+Under1
+```
+
+```{r}
+#Extract the big day using the unique ID created. 
+clusunder2 <- BigDays.sfdfT [381,]
+
+#Generate a convex hull around the big day. 
+clusunder2 <- st_convex_hull(clusunder2)
+
+clusunder2$nT
+clusunder2$ID
+#Extract all tornadoes that are in the biggestday 
+clusunder2torns <- BigDayTornadoes %>%
+  filter(ID == 200605103444) 
+
+
+clusunder2torns$mag <- as.numeric(clusunder2torns$mag)
+clusunder2torns$mag2 <- cut(clusunder2torns$mag, breaks=c(-1, 0, 1, 2, 3, 4, 5))
+```
+
+```{r}
+Under2 <- tm_shape(stateBorders) + 
+  tm_borders(col = "gray70") +
+tm_shape(clusunder2,projection = merc) + 
+  tm_borders(col = "gray15", 
+             alpha = 1, 
+             lwd = 2) +
+  tm_scale_bar(color.dark = "gray70", 
+               width = .3, 
+               size = 1, 
+               lwd = 2, 
+               position = c("left","bottom")) +
+    tm_compass(color.dark = "gray70", 
+             size = 5, 
+             lwd = 2, 
+             position = c("left","top")) + 
+    tm_format("World", 
+              attr.position = c("left", "top"),
+              legend.frame = FALSE,
+              inner.margins = c(.15, .1, .2, .1)) +
+    tm_layout(legend.bg.color = "white", 
+            legend.text.size = .75) + 
+  tm_shape(clusunder2torns, 
+         projection = merc, 
+         is.master = TRUE) +
+    tm_symbols(size = 3, 
+               col = "mag2", 
+               n = 6, 
+               palette = cr, 
+               alpha = 0.8, 
+               border.alpha = 0, 
+               labels = c("0", "1", "2", "3", "4", "5"), 
+               title.col = "EF Rating") +
+    tm_layout(title = "May 10, 2006 (Underpredict) \n 19 tornadoes", 
+              title.position = c("center", "top"), 
+              legend.title.size = 1.4,
+              legend.position = c("right", "bottom"), 
+              legend.stack = "horizontal",
+              legend.frame = FALSE, 
+              legend.text.size = 1.2, 
+              legend.width = -0.2, 
+              title.size = 1.5)
+  
+Under2
+```
+
+```{r}
+tmap_arrange(Over1, Over2, Under1, Under2)
+```
+
+Residual for April 27, 2011 and June 6, 1999
+```{r}
+mean(resid(modelFinalT))
+
+#The average residual is -0.1317874
+
+#April 27, 2011: Row 550
+which(BigDays.sfdfT$nT == 173)
+resid(modelFinalT)[550]
+
+
+#June 6, 1999: Row 168
+which(BigDays.sfdfT$ID == 199906061644)
+resid(modelFinalT)[168]
+```
+
+
+
+
+
+
+
+
 ## Casualty predictions 1-D
 
 Start with shear (DLBS)
