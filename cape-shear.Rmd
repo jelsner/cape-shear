@@ -865,10 +865,12 @@ direct.label(p, list("angled.boxes"))
 ##Model Residual 
 Rank the residuals: 
 ```{r}
+
+
 #Model Underpredicts
 head(sort(resid(modelFinalT)))
 #row 556 and 381
-resid(modelFinalT)[556]
+(resid(modelFinalT)[556])
 resid(modelFinalT)[381]
 
 #Model Overpredicts
@@ -876,6 +878,17 @@ tail(sort(resid(modelFinalT)))
 #row 149 and 279
 resid(modelFinalT)[149]
 resid(modelFinalT)[279]
+```
+
+
+```{r}
+df <- data.frame(ID = BigDays.sfdfT$ID,
+                 Observed = BigDays.sfdfT$nT,
+                 Predicted = predict(modelFinalT, type = "response"))
+
+Residuals_My <- df$Observed - df$Predicted
+mean(Residuals_My)
+#-0.06287
 ```
 
 
@@ -893,6 +906,8 @@ clusover1$nT
 clusover1torns <- BigDayTornadoes %>%
   filter(ID == 199901211532) 
 
+predover1.df <- df %>% filter(ID == 199901211532)
+predover1.df
 
 clusover1torns$mag <- as.numeric(clusover1torns$mag)
 clusover1torns$mag2 <- cut(clusover1torns$mag, breaks=c(-1, 0, 1, 2, 3, 4, 5))
@@ -957,6 +972,8 @@ clusover2$ID
 clusover2torns <- BigDayTornadoes %>%
   filter(ID == 200306242694) 
 
+predover2.df <- df %>% filter(ID == 200306242694)
+predover2.df
 
 clusover2torns$mag <- as.numeric(clusover2torns$mag)
 clusover2torns$mag2 <- cut(clusover2torns$mag, breaks=c(-1, 0, 1, 2, 3, 4, 5))
@@ -1023,6 +1040,8 @@ clusunder1$ID
 clusunder1torns <- BigDayTornadoes %>%
   filter(ID == 201105234655) 
 
+predunder1.df <- df %>% filter(ID == 201105234655)
+predunder1.df
 
 clusunder1torns$mag <- as.numeric(clusunder1torns$mag)
 clusunder1torns$mag2 <- cut(clusunder1torns$mag, breaks=c(-1, 0, 1, 2, 3, 4, 5))
@@ -1087,6 +1106,8 @@ clusunder2$ID
 clusunder2torns <- BigDayTornadoes %>%
   filter(ID == 200605103444) 
 
+predunder2.df <- df %>% filter(ID == 200605103444)
+predunder2.df
 
 clusunder2torns$mag <- as.numeric(clusunder2torns$mag)
 clusunder2torns$mag2 <- cut(clusunder2torns$mag, breaks=c(-1, 0, 1, 2, 3, 4, 5))
@@ -1149,13 +1170,16 @@ mean(resid(modelFinalT))
 #The average residual is -0.1317874
 
 #April 27, 2011: Row 550
-which(BigDays.sfdfT$nT == 173)
-resid(modelFinalT)[550]
 
+predApr27.df <- df %>% filter(ID == 201104274630)
+predApr27.df
+
+predApr27.df$Observed - predApr27.df$Predicted
 
 #June 6, 1999: Row 168
-which(BigDays.sfdfT$ID == 199906061644)
-resid(modelFinalT)[168]
+predJun6.df <- df %>% filter(ID == 199906061644)
+predJun6.df
+predJun6.df$Observed - predJun6.df$Predicted
 ```
 
 ## Casualty predictions 1-D
