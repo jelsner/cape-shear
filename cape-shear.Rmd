@@ -865,10 +865,8 @@ direct.label(p, list("angled.boxes"))
 ##Model Residual 
 Rank the residuals: 
 ```{r}
-
-
 #Model Underpredicts
-head(sort(resid(modelFinalT)))
+head(sort(Residuals_My))
 #row 556 and 381
 (resid(modelFinalT)[556])
 resid(modelFinalT)[381]
@@ -886,6 +884,9 @@ df <- data.frame(ID = BigDays.sfdfT$ID,
                  Observed = BigDays.sfdfT$nT,
                  Predicted = predict(modelFinalT, type = "response"))
 
+df <- df%>%
+  mutate(residuals = Observed - Predicted)
+
 Residuals_My <- df$Observed - df$Predicted
 mean(Residuals_My)
 #-0.06287
@@ -895,7 +896,8 @@ mean(Residuals_My)
 Create a graph of the 2 most overpredicted clusters by the model. 
 ```{r}
 #Extract the big day using the unique ID created. 
-clusover1 <- BigDays.sfdfT [149,]
+clusover1 <- BigDays.sfdfT %>%
+  filter(ID == 201105234655)
 
 #Generate a convex hull around the big day. 
 clusover1 <- st_convex_hull(clusover1)
@@ -904,9 +906,9 @@ clusover1$nT
 
 #Extract all tornadoes that are in the biggestday 
 clusover1torns <- BigDayTornadoes %>%
-  filter(ID == 199901211532) 
+  filter(ID == 201105234655) 
 
-predover1.df <- df %>% filter(ID == 199901211532)
+predover1.df <- df %>% filter(ID == 201105234655)
 predover1.df
 
 clusover1torns$mag <- as.numeric(clusover1torns$mag)
@@ -946,7 +948,7 @@ tm_shape(clusover1,projection = merc) +
                border.alpha = 0, 
                labels = c("0", "1", "2", "3", "4", "5"), 
                title.col = "EF Rating") +
-    tm_layout(title = "January 21, 1999  (Overpredict) \n 99 tornadoes", 
+    tm_layout(title = "May 23, 2011  (Overpredict) \n 17 tornadoes", 
               title.position = c("center", "top"), 
               legend.title.size = 1.4,
               legend.position = c("right", "bottom"), 
@@ -961,7 +963,8 @@ Over1
 
 ```{r}
 #Extract the big day using the unique ID created. 
-clusover2 <- BigDays.sfdfT [279,]
+clusover2 <- BigDays.sfdfT %>%
+  filter(ID == 200805253953)
 
 #Generate a convex hull around the big day. 
 clusover2 <- st_convex_hull(clusover2)
@@ -970,9 +973,9 @@ clusover2$nT
 clusover2$ID
 #Extract all tornadoes that are in the biggestday 
 clusover2torns <- BigDayTornadoes %>%
-  filter(ID == 200306242694) 
+  filter(ID == 200805253953) 
 
-predover2.df <- df %>% filter(ID == 200306242694)
+predover2.df <- df %>% filter(ID == 200805253953)
 predover2.df
 
 clusover2torns$mag <- as.numeric(clusover2torns$mag)
@@ -1012,7 +1015,7 @@ tm_shape(clusover2,projection = merc) +
                border.alpha = 0, 
                labels = c("0", "1", "2", "3", "4", "5"), 
                title.col = "EF Rating") +
-    tm_layout(title = "June 24, 2003  (Overpredict) \n 94 tornadoes", 
+    tm_layout(title = "May 25, 2008  (Overpredict) \n 32 tornadoes", 
               title.position = c("center", "top"), 
               legend.title.size = 1.4,
               legend.position = c("right", "bottom"), 
@@ -1028,7 +1031,8 @@ Over2
 Create a graph of the 2 most underpredicted clusters by the model. 
 ```{r}
 #Extract the big day using the unique ID created. 
-clusunder1 <- BigDays.sfdfT [556,]
+clusunder1 <- BigDays.sfdfT %>%
+  filter(ID == 199901211532)
 
 #Generate a convex hull around the big day. 
 clusunder1 <- st_convex_hull(clusunder1)
@@ -1038,9 +1042,9 @@ clusunder1$ID
 
 #Extract all tornadoes that are in the biggestday 
 clusunder1torns <- BigDayTornadoes %>%
-  filter(ID == 201105234655) 
+  filter(ID == 199901211532) 
 
-predunder1.df <- df %>% filter(ID == 201105234655)
+predunder1.df <- df %>% filter(ID == 199901211532)
 predunder1.df
 
 clusunder1torns$mag <- as.numeric(clusunder1torns$mag)
@@ -1080,7 +1084,7 @@ tm_shape(clusunder1,projection = merc) +
                border.alpha = 0, 
                labels = c("0", "1", "2", "3", "4", "5"), 
                title.col = "EF Rating") +
-    tm_layout(title = "May 23, 2011  (Underpredict) \n 17 tornadoes", 
+    tm_layout(title = "January 21, 1999  (Underpredict) \n 99 tornadoes", 
               title.position = c("center", "top"), 
               legend.title.size = 1.4,
               legend.position = c("right", "bottom"), 
@@ -1095,7 +1099,8 @@ Under1
 
 ```{r}
 #Extract the big day using the unique ID created. 
-clusunder2 <- BigDays.sfdfT [381,]
+clusunder2 <- BigDays.sfdfT %>%
+  filter(ID == 201104274630)
 
 #Generate a convex hull around the big day. 
 clusunder2 <- st_convex_hull(clusunder2)
@@ -1104,9 +1109,9 @@ clusunder2$nT
 clusunder2$ID
 #Extract all tornadoes that are in the biggestday 
 clusunder2torns <- BigDayTornadoes %>%
-  filter(ID == 200605103444) 
+  filter(ID == 201104274630) 
 
-predunder2.df <- df %>% filter(ID == 200605103444)
+predunder2.df <- df %>% filter(ID == 201104274630)
 predunder2.df
 
 clusunder2torns$mag <- as.numeric(clusunder2torns$mag)
@@ -1146,7 +1151,7 @@ tm_shape(clusunder2,projection = merc) +
                border.alpha = 0, 
                labels = c("0", "1", "2", "3", "4", "5"), 
                title.col = "EF Rating") +
-    tm_layout(title = "May 10, 2006 (Underpredict) \n 19 tornadoes", 
+    tm_layout(title = "April 27, 2011 (Underpredict) \n 173 tornadoes", 
               title.position = c("center", "top"), 
               legend.title.size = 1.4,
               legend.position = c("right", "bottom"), 
@@ -1404,13 +1409,15 @@ pgrid1$ppDiff <- (probs2 - probs1) * 100
 ```
 
 ## April 12, 2020 case https://www.spc.noaa.gov/cgi-bin-spc/getacrange.pl?date0=20200412&date1=20200412
-```{r, eval = FALSE}
+```{r}
 library(sf)
 
-read_sf(dsn = "day1otlk_20200412_1200-shp",
+day1out <- read_sf(dsn = "day1otlk_20200412_1200-shp",
                          layer = "day1otlk_20200412_1200_torn") %>%
-  st_transform(crs = 3857) %>%
-  st_area()
+  st_transform(crs = 3857) 
+
+#%>%
+#  st_area()
 
 quantile(BigDays.sfdfT$HullArea)
 ```
@@ -1425,4 +1432,59 @@ ggplot(aes(x = Year, y = Avg)) +
   geom_point() +
   geom_smooth(method = lm)
 ```
+
+Pllot the SPC Outlook
+```{r}
+tm_shape(day1out) + 
+  tm_borders()
+```
+
+```{r}
+cr <- RColorBrewer::brewer.pal(9, "Greys")
+cr <- cr[-c(1:3)]
+```
+
+```{r}
+Apr12 <- read.csv("April122020_Outbreak.csv", header = TRUE)
+```
+
+```{r}
+Apr12.sfdfT = st_as_sf(Apr12, coords = c("LON", "LAT"), 
+                 crs = 4326)
+```
+
+
+```{r}
+day1out <- day1out[1:4,]
+
+mycols <- colors()[c(51, 142, 585, 555)]
+
+tm_shape(stateBorders) + 
+  tm_borders(col = "gray70", alpha = 1) +
+  tm_compass(size = 3, fontsize = 1, lwd = 2, color.dark = "gray70") + 
+  tm_scale_bar(width = .3, size = 0.8, lwd = 1.75, color.dark = "gray70") +
+  tm_layout(legend.bg.color = "white", 
+            legend.text.size = .75, 
+            attr.position = c("left", "bottom"), 
+            inner.margins = c(.2, .2, .2, .2)) +
+tm_shape(day1out, is.master = TRUE, projection = merc) +
+  tm_fill("LABEL",
+            title = "Categorical Outlook",
+            palette = mycols, alpha = .6) +
+tm_shape(Apr12.sfdfT) +
+  tm_bubbles(size = 0.05, col = "black", border.lwd = 0, alpha = 0.6 ) +
+  tm_layout(title = "April 12, 2020 1200 UTC \n Day 1 Convective Outlook", 
+              title.position = c("center", "top"), 
+              legend.title.size = 1,
+              legend.position = c("right", "bottom"), 
+              legend.stack = "horizontal",
+              legend.frame = FALSE, 
+              legend.text.size = 0.8, 
+              legend.width = -0.2, 
+              title.size = 1.2)
+  
+```
+
+
+
 
