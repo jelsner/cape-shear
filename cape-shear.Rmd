@@ -465,7 +465,7 @@ tornyear <- BigDays.sfdfT %>%
 
 ```{r}
 TornYear <- ggplot(tornyear, (aes(Year, y = AvgTornperYear))) +
-  #geom_smooth(aes(x = week, y = probs/100), span = .5, se = FALSE, color = "gray70", size = 1) +
+  geom_smooth(method = lm, size = 1, col = "black") +
   geom_line(color = "black", lwd = 1) +
   scale_x_continuous(expand = c(0, 0), breaks = c(seq(1994,2018,1)), limits = c(1994, 2018)) +
   scale_y_continuous(limits = c(10, 40)) + 
@@ -477,7 +477,6 @@ TornYear <- ggplot(tornyear, (aes(Year, y = AvgTornperYear))) +
 TornYear <- TornYear + theme(panel.grid = element_blank(), axis.title.y = element_text(colour = "black"), axis.text.y = element_text(color = "black"),  axis.text.x = element_text(angle = 45, hjust = 1), axis.text = element_text(size = 12), axis.title=element_text(size=14)) + ggtitle("Time Series")
 TornYear
 ```
-
 
 *Separate the clusters by week of the year.*
 
@@ -665,7 +664,7 @@ ggplot(df, aes(x = Observed, y = Predicted)) +
 ```
 
 Consider only CAPE, CIN, BS (deep & shallow) for the scaled average values of the variables.
-```{r}
+```{r, eval = FALSE}
 library(MASS)
 
 modelInitial <- glm.nb(nT ~ A + Lat + Lon + Year + CAPE_avg + CIN_avg + DLBS_avg + SLBS_avg + HLCY_avg, data = BigDays.sfdfT)
@@ -906,15 +905,37 @@ resid(modelFinalT)[279]
 df <- data.frame(ID = BigDays.sfdfT$ID,
                  Observed = BigDays.sfdfT$nT,
                  Predicted = predict(modelFinalT, type = "response"), 
-                 Area_sqkm = BigDays.sfdfT$A)
+                 Area_sqkm = BigDays.sfdfT$A,
+                 CAPE = BigDays.sfdfT$CAPE,
+                 DLBS = BigDays.sfdfT$DLBS,
+                 SLBS = BigDays.sfdfT$SLBS, 
+                 nT = BigDays.sfdfT$nT)
 
 df <- df%>%
   mutate(residuals = Observed - Predicted,
-         clusdens = Observed/Area_sqkm)
+         clusdens = Observed/Area_sqkm) 
 
 Residuals_My <- df$Observed - df$Predicted
 mean(Residuals_My)
 #-0.06287
+
+Model_lessdens <- df %>%
+  arrange(clusdens) %>%
+  slice(6:(n()))
+
+formulaT <- nT ~ Area_sqkm + CAPE + DLBS + SLBS
+modelFinalT2 <- glm.nb(formulaT, data = Model_lessdens)
+summary(modelFinalT2)
+
+df <- Model_lessdens %>%
+  mutate(Predicted = predict(modelFinalT2, type = "response"))
+
+#Mean Absolute Error: 
+mean(abs(df$nT - df$Predicted))
+
+library(Metrics)
+mae(df$nT, df$Predicted)
+
 ```
 
 
