@@ -24,7 +24,7 @@ Load the cluster-level tornado data.
 load("BigDays.RData")
 
 BigDays.sfdfT <- BigDays.sfdfT %>%
-  mutate(A = as.numeric(HullArea)/10^10,
+  mutate(A = as.numeric(HullArea)/10^10, #convert square kilometers
          CAPE = maxCAPE/1000,
          CIN = minCIN/100,
          DLBS = maxBS_deep/10,
@@ -456,6 +456,29 @@ a <- ggplot(x, (aes(x = Year, y = avgcas))) +
 a + theme(axis.title.y = element_text(colour = "black"), axis.text.y = element_text(color = "black"),  axis.text.x = element_text(angle = 45, hjust = 1), axis.text = element_text(size = 12), axis.title=element_text(size=14))
 ```
 
+Create a time series of average tornadoes per cluster by year. 
+```{r}
+tornyear <- BigDays.sfdfT %>%
+  group_by(Year) %>%
+  summarize(AvgTornperYear = mean(nT))
+```
+
+```{r}
+TornYear <- ggplot(tornyear, (aes(Year, y = AvgTornperYear))) +
+  #geom_smooth(aes(x = week, y = probs/100), span = .5, se = FALSE, color = "gray70", size = 1) +
+  geom_line(color = "black", lwd = 1) +
+  scale_x_continuous(expand = c(0, 0), breaks = c(seq(1994,2018,1)), limits = c(1994, 2018)) +
+  scale_y_continuous(limits = c(10, 40)) + 
+#  geom_smooth(aes(x = week, y = probs/100), span = .5, se = FALSE, color = "gray70", size = 1) +
+  theme_bw() +
+  xlab("") +
+  ylab("Average Tornadoes per Cluster\n ")
+
+TornYear <- TornYear + theme(panel.grid = element_blank(), axis.title.y = element_text(colour = "black"), axis.text.y = element_text(color = "black"),  axis.text.x = element_text(angle = 45, hjust = 1), axis.text = element_text(size = 12), axis.title=element_text(size=14)) + ggtitle("Time Series")
+TornYear
+```
+
+
 *Separate the clusters by week of the year.*
 
 ```{r}
@@ -882,10 +905,12 @@ resid(modelFinalT)[279]
 ```{r}
 df <- data.frame(ID = BigDays.sfdfT$ID,
                  Observed = BigDays.sfdfT$nT,
-                 Predicted = predict(modelFinalT, type = "response"))
+                 Predicted = predict(modelFinalT, type = "response"), 
+                 Area_sqkm = BigDays.sfdfT$A)
 
 df <- df%>%
-  mutate(residuals = Observed - Predicted)
+  mutate(residuals = Observed - Predicted,
+         clusdens = Observed/Area_sqkm)
 
 Residuals_My <- df$Observed - df$Predicted
 mean(Residuals_My)
@@ -1164,8 +1189,15 @@ tm_shape(clusunder2,projection = merc) +
 Under2
 ```
 
+Create a 4-panel map of the two  most over predicted and two most under predicted variables. 
 ```{r}
 tmap_arrange(Over1, Over2, Under1, Under2)
+```
+
+Compare the correlation between Residuals and the Cluster Density: 
+```{r}
+cor(df$residuals, df$clusdens)
+#0.02132019
 ```
 
 Compare the residuals for April 27, 2011 and June 6, 1999 to the average residuals from the model. 
@@ -1466,21 +1498,21 @@ tm_shape(stateBorders) +
   tm_layout(legend.bg.color = "white", 
             legend.text.size = .75, 
             attr.position = c("left", "bottom"), 
-            inner.margins = c(.2, .2, .2, .2)) +
+            inner.margins = c(.15, .15, .15, .15)) +
 tm_shape(day1out, is.master = TRUE, projection = merc) +
   tm_fill("LABEL",
-            title = "Categorical Outlook",
+            title = "Probability",
             palette = mycols, alpha = .6) +
 tm_shape(Apr12.sfdfT) +
   tm_bubbles(size = 0.05, col = "black", border.lwd = 0, alpha = 0.6 ) +
-  tm_layout(title = "April 12, 2020 1200 UTC \n Day 1 Convective Outlook", 
+  tm_layout(#title = "April 12, 2020 1200 UTC \n Day 1 Convective Outlook", 
               title.position = c("center", "top"), 
-              legend.title.size = 1,
+              legend.title.size = 1.1,
               legend.position = c("right", "bottom"), 
               legend.stack = "horizontal",
               legend.frame = FALSE, 
-              legend.text.size = 0.8, 
-              legend.width = -0.2, 
+              legend.text.size = 0.9, 
+              legend.width = -0.1, 
               title.size = 1.2)
   
 ```
